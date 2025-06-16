@@ -10,7 +10,7 @@ export default function Navbar() {
   const profilePic = authData?.member?.profilePic || "/assets/default-profile.png";
 
   return (
-    <nav className="fixed top-0 left-0 right-0 w-full bg-[#232323] py-2 px-4 flex items-center shadow-md z-50">
+    <nav className="fixed top-0 left-0 right-0 w-full bg-[#232323] border-[#444444] py-2 px-4 flex items-center shadow-md z-50">
       {/* Left: Logo */}
       <div className="flex-none">
         <img src="/assets/gclogo.png" alt="GC Logo" className="h-10 w-auto" />

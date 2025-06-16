@@ -1,6 +1,7 @@
 import React from 'react';
 import Footer from '../components/Footer.jsx';
 import { useHalls } from '../context/HallsContext';
+import { Link } from "react-router-dom";
 
 const GulshanClub = () => {
   const { halls, loading } = useHalls();
@@ -51,7 +52,9 @@ const GulshanClub = () => {
                           minWidth: 0,
                         }}
                       >
-                        Book Now
+                        <Link to={`/charges/${hall.id}`} style={{ color: "inherit", textDecoration: "none" }}>
+                          Book Now
+                        </Link>
                       </button>
                     </div>
                   </div>
