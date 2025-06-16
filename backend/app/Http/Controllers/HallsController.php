@@ -1,0 +1,210 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Hall;
+use Illuminate\Support\Facades\Storage;
+
+class HallsController extends Controller
+{
+    public function index()
+    {
+        $halls = Hall::all()->map(function ($hall) {
+            return $this->transformHall($hall);
+        });
+        return response()->json($halls);
+    }
+
+    public function store(Request $request)
+    {
+    $requestData = $request->all();
+
+    // Set default empty arrays if not present
+    if (!isset($requestData['images'])) {
+        $requestData['images'] = [];
+    }
+    if (!isset($requestData['charges'])) {
+        $requestData['charges'] = [];
+    }
+    if (!isset($requestData['policy_content'])) {
+        $requestData['policy_content'] = [];
+    }
+
+    $data = validator($requestData, [
+        'name' => 'required|string',
+        'description' => 'nullable|string',
+        'capacity' => 'nullable|integer',
+        'charges' => 'nullable|array',
+        'images' => 'nullable|array',
+        'images.*' => 'file|image',
+        'policy_pdf' => 'nullable|mimes:pdf',
+        'policy_content' => 'nullable|array',
+    ])->validate();
+
+        // Upload images
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $filename = time() . '_' . $image->getClientOriginalName();
+                $path = $image->storeAs('halls', $filename, 'public');
+                $imagePaths[] = 'storage/' . $path;
+            }
+        }
+
+        // Upload policy PDF
+        $policyPdfPath = null;
+        if ($request->hasFile('policy_pdf')) {
+            $pdf = $request->file('policy_pdf');
+            $pdfFilename = time() . '_' . $pdf->getClientOriginalName();
+            $path = $pdf->storeAs('hall_policies', $pdfFilename, 'public');
+            $policyPdfPath = 'storage/' . $path;
+        }
+
+        // Create hall
+        $hall = Hall::create([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'capacity' => $data['capacity'] ?? null,
+            'charges' => $data['charges'],
+            'images' => $imagePaths,
+            'policy_pdf' => $policyPdfPath,
+            'policy_content' => $data['policy_content'] ?? null,
+        ]);
+
+        return response()->json($this->transformHall($hall), 201);
+    }
+
+    public function show($id)
+    {
+        $hall = Hall::find($id);
+        if (!$hall) return response()->json(['error' => 'Not found'], 404);
+        return response()->json($this->transformHall($hall));
+    }
+
+public function updateBasic(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'name' => 'sometimes|string',
+        'description' => 'nullable|string',
+        'capacity' => 'nullable|integer',
+        'is_active' => 'boolean',
+    ]);
+
+    $hall->update($data);
+    return response()->json($this->transformHall($hall));
+}
+
+public function addCharge(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'name' => 'required|string',
+        'value' => 'required|numeric',
+    ]);
+
+    $charges = $hall->charges ?? [];
+    $charges[$data['name']] = $data['value'];
+
+    $hall->charges = $charges;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function updateCharge(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'name' => 'required|string',
+        'value' => 'required|numeric',
+    ]);
+
+    $charges = $hall->charges ?? [];
+
+    if (!array_key_exists($data['name'], $charges)) {
+        return response()->json(['error' => 'Charge not found'], 404);
+    }
+
+    $charges[$data['name']] = $data['value'];
+    $hall->charges = $charges;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function deleteCharge(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'name' => 'required|string',
+    ]);
+
+    $charges = $hall->charges ?? [];
+
+    if (!array_key_exists($data['name'], $charges)) {
+        return response()->json(['error' => 'Charge not found'], 404);
+    }
+
+    unset($charges[$data['name']]);
+    $hall->charges = $charges;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+
+public function destroy($id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    // Delete images from storage
+    if (is_array($hall->images)) {
+        foreach ($hall->images as $image) {
+            $relativePath = str_replace('storage/', '', $image);
+            Storage::disk('public')->delete($relativePath);
+        }
+    }
+
+    // Delete policy PDF from storage
+    if ($hall->policy_pdf) {
+        $relativePdfPath = str_replace('storage/', '', $hall->policy_pdf);
+        Storage::disk('public')->delete($relativePdfPath);
+    }
+
+    // Delete the hall from database
+    $hall->delete();
+
+    return response()->json(['message' => 'Hall and associated assets deleted successfully']);
+}
+
+private function transformHall($hall)
+{
+    return [
+        'id' => $hall->id,
+        'name' => $hall->name,
+        'description' => $hall->description,
+        'capacity' => $hall->capacity,
+        'charges' => $hall->charges,
+        'images' => is_array($hall->images)
+            ? array_map(fn($img) => $img ? url($img) : null, $hall->images)
+            : [],
+        'policy_pdf' => $hall->policy_pdf ? url($hall->policy_pdf) : null,
+        'policy_content' => $hall->policy_content,
+        'is_active' => $hall->is_active,
+        'created_at' => $hall->created_at,
+        'updated_at' => $hall->updated_at,
+    ];
+}
+
+}
