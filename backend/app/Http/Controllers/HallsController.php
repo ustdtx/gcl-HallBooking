@@ -234,6 +234,130 @@ public function deletePolicyPdf($id)
     return response()->json(['message' => 'Policy PDF deleted successfully']);
 }
 
+public function addImages(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $request->validate([
+        'images' => 'required|array',
+        'images.*' => 'file|image',
+        'dummy' => 'nullable|string',
+    ]);
+
+    $dummy = $request->input('dummy'); // just to show you're receiving it
+
+    $newImagePaths = [];
+    foreach ($request->file('images') as $image) {
+        $filename = time() . '_' . $image->getClientOriginalName();
+        $path = $image->storeAs('halls', $filename, 'public');
+        $newImagePaths[] = 'storage/' . $path;
+    }
+
+    $hall->images = array_merge($hall->images ?? [], $newImagePaths);
+    $hall->save();
+
+    return response()->json([
+        'hall' => $this->transformHall($hall),
+        'dummy' => $dummy,
+    ]);
+}
+
+public function deleteImage(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $request->validate([
+        'image_url' => 'required|string',
+    ]);
+
+    $imageUrl = $request->input('image_url');
+    $parsedUrlPath = parse_url($imageUrl, PHP_URL_PATH); // /storage/halls/filename.jpg
+    $relativePath = ltrim($parsedUrlPath, '/');           // storage/halls/filename.jpg
+
+    $images = $hall->images ?? [];
+
+    if (!in_array($relativePath, $images)) {
+        return response()->json(['error' => 'Image not found in record'], 404);
+    }
+
+    // Delete file
+    Storage::disk('public')->delete(str_replace('storage/', '', $relativePath));
+
+    // Remove from DB array
+    $updatedImages = array_filter($images, fn($img) => $img !== $relativePath);
+    $hall->images = array_values($updatedImages);
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function addPolicyContent(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'header' => 'required|string',
+        'description' => 'required|string',
+    ]);
+
+    $policy = $hall->policy_content ?? [];
+    $policy[$data['header']] = $data['description'];
+
+    $hall->policy_content = $policy;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function updatePolicyContent(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'header' => 'required|string',
+        'description' => 'required|string',
+    ]);
+
+    $policy = $hall->policy_content ?? [];
+
+    if (!array_key_exists($data['header'], $policy)) {
+        return response()->json(['error' => 'Policy header not found'], 404);
+    }
+
+    $policy[$data['header']] = $data['description'];
+    $hall->policy_content = $policy;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function deletePolicyContent(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $data = $request->validate([
+        'header' => 'required|string',
+    ]);
+
+    $policy = $hall->policy_content ?? [];
+
+    if (!array_key_exists($data['header'], $policy)) {
+        return response()->json(['error' => 'Policy header not found'], 404);
+    }
+
+    unset($policy[$data['header']]);
+    $hall->policy_content = $policy;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+
 
 public function destroy($id)
 {

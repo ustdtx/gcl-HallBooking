@@ -37,3 +37,9 @@ Route::patch('/halls/{id}/charges/delete', [HallsController::class, 'deleteCharg
 Route::post('/halls/{id}/policy-pdf/add', [HallsController::class, 'addPolicyPdf']);
 Route::post('/halls/{id}/policy-pdf/update', [HallsController::class, 'updatePolicyPdf']);
 Route::patch('/halls/{id}/policy-pdf/delete', [HallsController::class, 'deletePolicyPdf']);
+Route::post('/halls/{id}/images', [HallsController::class, 'addImages']);
+Route::delete('/halls/{id}/images', [HallsController::class, 'deleteImage']);
+Route::patch('/halls/{id}/policy-content/add', [HallsController::class, 'addPolicyContent']);
+Route::patch('/halls/{id}/policy-content/update', [HallsController::class, 'updatePolicyContent']);
+Route::patch('/halls/{id}/policy-content/delete', [HallsController::class, 'deletePolicyContent']);
+
