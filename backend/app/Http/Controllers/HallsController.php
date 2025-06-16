@@ -162,6 +162,78 @@ public function deleteCharge(Request $request, $id)
     return response()->json($this->transformHall($hall));
 }
 
+public function addPolicyPdf(Request $request, $id)
+{
+    \Log::info('Incoming policy_pdf request:', [
+        'has_file' => $request->hasFile('policy_pdf'),
+        'files' => $request->allFiles(),
+        'all' => $request->all()
+    ]);
+
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    if ($request->hasFile('policy_pdf')) {
+        $pdf = $request->file('policy_pdf');
+        $filename = time() . '_' . $pdf->getClientOriginalName();
+        $path = $pdf->storeAs('hall_policies', $filename, 'public');
+
+        $hall->policy_pdf = 'storage/' . $path;
+        $hall->save();
+
+        return response()->json([
+            'message' => 'Uploaded',
+            'url' => url('storage/' . $path),
+            'filename' => $filename
+        ]);
+    }
+
+    return response()->json(['error' => 'No file uploaded'], 400);
+}
+
+public function updatePolicyPdf(Request $request, $id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    $request->validate([
+        'policy_pdf' => 'required|mimes:pdf',
+    ]);
+
+    // Delete old PDF if exists
+    if ($hall->policy_pdf) {
+        $oldPath = str_replace('storage/', '', $hall->policy_pdf);
+        Storage::disk('public')->delete($oldPath);
+    }
+
+    $pdf = $request->file('policy_pdf');
+    $filename = time() . '_' . $pdf->getClientOriginalName();
+    $path = $pdf->storeAs('hall_policies', $filename, 'public');
+
+    $hall->policy_pdf = 'storage/' . $path;
+    $hall->save();
+
+    return response()->json($this->transformHall($hall));
+}
+
+public function deletePolicyPdf($id)
+{
+    $hall = Hall::find($id);
+    if (!$hall) return response()->json(['error' => 'Not found'], 404);
+
+    if (!$hall->policy_pdf) {
+        return response()->json(['error' => 'No policy PDF found'], 404);
+    }
+
+    $relativePath = str_replace('storage/', '', $hall->policy_pdf);
+    Storage::disk('public')->delete($relativePath);
+
+    $hall->policy_pdf = null;
+    $hall->save();
+
+    return response()->json(['message' => 'Policy PDF deleted successfully']);
+}
+
 
 public function destroy($id)
 {

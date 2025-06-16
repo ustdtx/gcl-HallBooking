@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 export default function Navbar() {
   const { authData } = useAuth();
   const navigate = useNavigate(); // Initialize navigate
-  const isLoggedIn = !!authData.member;
+  const isLoggedIn = !!authData?.member;
   const firstName = authData?.member?.name ? authData.member.name.split(" ")[0] : "Member";
   const profilePic = authData?.member?.profilePic || "/assets/default-profile.png";
 
