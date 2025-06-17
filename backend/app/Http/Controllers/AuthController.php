@@ -67,10 +67,13 @@ class AuthController extends Controller
         $member->otp_created = null;
         $member->otp_expiry = null;
         $member->save();
+        
+        $token = $member->createToken('auth_token')->plainTextToken;
 
         // You can return a token or session logic here
         return response()->json([
             'message' => 'Login successful',
+            'token' => $token,
             'member' => $member
         ]);
     }

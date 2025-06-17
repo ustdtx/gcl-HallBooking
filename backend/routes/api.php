@@ -42,4 +42,12 @@ Route::delete('/halls/{id}/images', [HallsController::class, 'deleteImage']);
 Route::patch('/halls/{id}/policy-content/add', [HallsController::class, 'addPolicyContent']);
 Route::patch('/halls/{id}/policy-content/update', [HallsController::class, 'updatePolicyContent']);
 Route::patch('/halls/{id}/policy-content/delete', [HallsController::class, 'deletePolicyContent']);
+use App\Http\Controllers\BookingController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/bookings', [BookingController::class, 'store']); // create booking
+    Route::get('/bookings/user', [BookingController::class, 'userBookings']); // user's all bookings
+    Route::get('/bookings/hall/{hall_id}', [BookingController::class, 'hallBookings']); // hall bookings by month
+    Route::put('/bookings/{id}/cancel', [BookingController::class, 'cancel']); // cancel booking
+});
 
