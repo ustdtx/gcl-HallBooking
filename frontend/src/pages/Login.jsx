@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Login() {
   const [step, setStep] = useState(1);
@@ -10,7 +11,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const { setAuthData } = useAuth();
-
+  
+  const navigate = useNavigate(); 
   // Replace with your actual API base URL
   const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -19,6 +21,7 @@ export default function Login() {
       setStep(2);
     }
   };
+
 
   const handleRequestOtp = async () => {
     if (!emailOrPhone.trim()) return;
@@ -60,8 +63,10 @@ export default function Login() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAuthData(data); // Store the object globally
-        setStep(4);
+        setAuthData(data);
+
+        
+        navigate('/home', { replace: true });
       } else {
         const data = await res.json();
         setMessage(data.message || "OTP verification failed");
@@ -70,7 +75,7 @@ export default function Login() {
       setMessage("Network error");
     }
     setLoading(false);
-  };
+  }
 
   return (
     <>

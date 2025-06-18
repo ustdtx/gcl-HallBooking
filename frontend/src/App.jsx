@@ -8,17 +8,14 @@ import Home from './pages/Home';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Login from "./pages/Login";
-import { AuthProvider } from "./context/AuthContext";
-import { HallsProvider } from "./context/HallsContext";
-import Charges from "./pages/Charges"; // You'll create this next
+import Charges from "./pages/Charges"; 
+import BookingCalendar from "./pages/BookingCalendar";
 
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <AuthProvider>
-      <HallsProvider>
         <Router>
           {/* Global background image */}
           <div
@@ -63,10 +60,9 @@ function App() {
             <Route path="/home" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/charges/:hallId" element={<Charges />} />
+            <Route path="/booking/:hallId/calendar" element={<BookingCalendar />} />
           </Routes>
         </Router>
-      </HallsProvider>
-    </AuthProvider>
   )
 }
 

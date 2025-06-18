@@ -70,7 +70,16 @@ class BookingController extends Controller
         $bookings = Booking::where('hall_id', $hall_id)
             ->whereBetween('booking_date', [$start, $end])
             ->with('member')
-            ->get();
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'booking_date' => $booking->booking_date,
+                    'shift' => $booking->shift,
+                    'status' => $booking->status,
+                    'member_name' => $booking->member->name ?? 'N/A',
+                    'club_account' => $booking->member->club_account ?? null,
+                ];
+            });
 
         return response()->json($bookings);
     }

@@ -12,6 +12,7 @@ class Booking extends Model
         'booking_date',
         'shift',
         'status',
+        'statusUpdater'
     ];
 
     public function member()

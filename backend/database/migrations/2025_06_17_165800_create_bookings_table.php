@@ -18,6 +18,7 @@ public function up(): void
         $table->date('booking_date');
         $table->enum('shift', ['FN', 'AN', 'FD']);
         $table->enum('status', ['Unpaid', 'Pre-Booked', 'Confirmed', 'Cancelled'])->default('Unpaid');
+        $table->enum('statusUpdater',['Auto','Admin'])->default('Auto');
         $table->timestamps();
     });
 }

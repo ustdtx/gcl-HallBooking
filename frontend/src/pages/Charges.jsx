@@ -34,12 +34,9 @@ const Charges = () => {
 
   // Handler for booking calendar button
   const handleBookingCalendar = () => {
-    if (!user) {
-      navigate("/login");
-    } else {
+
       navigate(`/booking/${hallId}/calendar`);
-    }
-  };
+    };
 
   return (<>
     <div className="relative w-full min-h-screen">
