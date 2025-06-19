@@ -14,6 +14,7 @@ public function run(): void
 {
     $this->call([
         MemberSeeder::class,
+        BookingSeeder::class,
     ]);
 }
 

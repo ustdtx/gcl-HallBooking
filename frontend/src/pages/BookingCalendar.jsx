@@ -1,220 +1,354 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHalls } from '../context/HallsContext';
-import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-const shifts = ['FN', 'AN', 'FD'];
-
-const statusColor = {
-  Unavailable: 'bg-red-600 text-white',
-  'Pre-Booked': 'bg-yellow-400 text-black',
-  Unpaid: 'bg-green-500 text-white',
-  Cancelled: 'bg-green-500 text-white',
-  Available: 'bg-green-500 text-white'
-};
-
-export default function BookingCalendar() {
+const BookingCalendar = () => {
   const { authData } = useAuth();
-  const { halls } = useHalls();
   const navigate = useNavigate();
+  const { halls } = useHalls();
   const { hallId } = useParams();
-  console.log("Hall ID:", hallId);
-
-  const [selectedMonth, setSelectedMonth] = useState('06');
-  const [selectedYear, setSelectedYear] = useState('2025');
+  
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState({});
   const [showResults, setShowResults] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedShift, setSelectedShift] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const currentHall = halls.find(h => h.id === parseInt(hallId));
+  const currentHall = halls.find(hall => hall.id === parseInt(hallId));
+
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' }
+  ];
+
+  const shifts = [
+    { value: 'FN', label: 'Forenoon' },
+    { value: 'AN', label: 'Afternoon' },
+    { value: 'FD', label: 'Full Day' }
+  ];
 
   useEffect(() => {
-    if (!authData?.member) navigate('/login');
+    if (!authData?.member) {
+      navigate("/login");
+    }
   }, [authData, navigate]);
 
-  const fetchBookings = async () => {
+  const handleSearch = async () => {
+    if (!selectedMonth || !selectedYear) {
+      alert('Please select both month and year');
+      return;
+    }
+
     setLoading(true);
-    setSelected({});
     try {
-      const res = await axios.get(`${API_BASE}/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`);
-      setBookings(res.data);
-      setShowResults(true);
-    } catch (err) {
-      console.error(err);
-    }
-    setLoading(false);
-  };
-
-  const getStatus = (date, shift) => {
-    const match = bookings.find(b => b.booking_date === date && b.shift === shift);
-    if (!match) return 'Available';
-    return match.status;
-  };
-
-  const handleSelect = (date, shift) => {
-    const key = `${date}-${shift}`;
-    if (selected[key]) {
-      const updated = { ...selected };
-      delete updated[key];
-      setSelected(updated);
-    } else {
-      const newSelected = { ...selected };
-
-      // enforce shift logic
-      const prefix = `${date}-`;
-      if (shift === 'FD') {
-        shifts.forEach(s => delete newSelected[`${prefix}${s}`]);
-        newSelected[`${date}-FD`] = true;
-      } else {
-        delete newSelected[`${date}-FD`];
-        newSelected[key] = true;
-      }
-
-      setSelected(newSelected);
-    }
-  };
-
-  const handleConfirm = async () => {
-    for (let key in selected) {
-      const [booking_date, shift] = key.split('-');
-      await axios.post(`${API_BASE}/bookings`, {
-        hall_id: parseInt(hallId),
-        booking_date,
-        shift
-      }, {
-        headers: {
-          Authorization: `Bearer ${authData.token}`
+      const response = await fetch(
+        `${API_BASE}/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${authData.token}`
+          }
         }
-      });
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data);
+        setShowResults(true);
+      } else {
+        throw new Error('Failed to fetch bookings');
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      alert('Error fetching bookings');
+    } finally {
+      setLoading(false);
     }
-    fetchBookings();
+  };
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year, month) => {
+    return new Date(year, month - 1, 1).getDay();
+  };
+
+  const getBookingStatus = (date, shift) => {
+    const booking = bookings.find(b => 
+      b.booking_date === `${selectedYear}-${selectedMonth}-${date.toString().padStart(2, '0')}` && 
+      b.shift === shift
+    );
+    return booking;
+  };
+
+  const isShiftAvailable = (date, shift) => {
+    const booking = getBookingStatus(date, shift);
+    return !booking || booking.status === 'Unpaid' || booking.status === 'Cancelled';
+  };
+
+  const getShiftStyle = (date, shift) => {
+    const booking = getBookingStatus(date, shift);
+    if (!booking) return { backgroundColor: '#00B34C', color: 'white' }; // Available - green
+    if (booking.status === 'Unpaid') return { backgroundColor: '#808080', color: 'white' }; // On-Hold - grey
+    if (booking.status === 'Cancelled') return { backgroundColor: '#F4B083', color: 'white' }; // Prebooked - orange
+    return { backgroundColor: '#FE0000', color: 'white' }; // Booked - red
+  };
+
+  const isShiftDisabled = (shift) => {
+    if (!selectedDate) return false;
+    
+    if (shift === 'FD') {
+      // FD is disabled if FN or AN is selected
+      return selectedShift === 'FN' || selectedShift === 'AN';
+    } else {
+      // FN and AN are disabled if FD is selected
+      return selectedShift === 'FD';
+    }
+  };
+
+  const handleDateShiftSelect = (date, shift) => {
+    if (!isShiftAvailable(date, shift)) return;
+    
+    const dateStr = `${selectedYear}-${selectedMonth}-${date.toString().padStart(2, '0')}`;
+    setSelectedDate(dateStr);
+    setSelectedShift(shift);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!selectedDate || !selectedShift) {
+      alert('Please select a date and shift');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/bookings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authData.token}`
+        },
+        body: JSON.stringify({
+          hall_id: parseInt(hallId),
+          booking_date: selectedDate,
+          shift: selectedShift
+        })
+      });
+
+      if (response.ok) {
+        alert('Booking confirmed successfully!');
+        setShowConfirmModal(false);
+        setSelectedDate('');
+        setSelectedShift('');
+        // Refresh the calendar data
+        handleSearch();
+      } else {
+        throw new Error('Failed to create booking');
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Error creating booking');
+    }
   };
 
   const renderCalendar = () => {
+    if (!showResults) return null;
+
     const year = parseInt(selectedYear);
-    const month = parseInt(selectedMonth) - 1;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const firstDay = new Date(year, month, 1).getDay();
+    const month = parseInt(selectedMonth);
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = getFirstDayOfMonth(year, month);
+    
+    const days = [];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    const weeks = [];
-    let day = 1;
-
-    for (let w = 0; w < 6; w++) {
-      const days = [];
-      for (let d = 0; d < 7; d++) {
-        if ((w === 0 && d < firstDay) || day > daysInMonth) {
-          days.push(<td key={d}></td>);
-        } else {
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const shiftBtns = shifts.map(shift => {
-            const status = getStatus(dateStr, shift);
-            const key = `${dateStr}-${shift}`;
-            const isSelected = selected[key];
-
-            const isDisabled = status === 'Unavailable' || status === 'Pre-Booked' || (shift === 'FD' && (selected[`${dateStr}-FN`] || selected[`${dateStr}-AN`])) || ((shift === 'FN' || shift === 'AN') && selected[`${dateStr}-FD`]);
-
-            return (
-              <button
-                key={shift}
-                disabled={isDisabled}
-                className={`block w-full my-0.5 text-xs py-1 rounded ${statusColor[status] || 'bg-gray-300'} ${isSelected ? 'ring-2 ring-white' : ''} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                onClick={() => handleSelect(dateStr, shift)}
-              >
-                {shift}
-              </button>
-            );
-          });
-
-          days.push(
-            <td key={d} className="p-1 text-center border border-gray-700">
-              <div className="text-xs mb-1 text-white">{day}</div>
-              {shiftBtns}
-            </td>
-          );
-          day++;
-        }
-      }
-      weeks.push(<tr key={w}>{days}</tr>);
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < firstDay; i++) {
+      days.push(<div key={`empty-${i}`} className="p-2"></div>);
     }
 
-    return <tbody>{weeks}</tbody>;
+    // Add days of the month
+    for (let date = 1; date <= daysInMonth; date++) {
+      days.push(
+        <div key={date} className="p-1 border border-gray-600">
+          <div className="text-center text-white mb-1">{date}</div>
+          <div className="space-y-1">
+            {shifts.map(shift => (
+              <button
+                key={shift.value}
+                onClick={() => handleDateShiftSelect(date, shift.value)}
+                disabled={!isShiftAvailable(date, shift.value)}
+                style={{
+                  ...getShiftStyle(date, shift.value),
+                  border: selectedDate === `${selectedYear}-${selectedMonth}-${date.toString().padStart(2, '0')}` && 
+                          selectedShift === shift.value ? '2px solid #60A5FA' : '1px solid #374151',
+                  cursor: isShiftAvailable(date, shift.value) ? 'pointer' : 'not-allowed',
+                  opacity: isShiftAvailable(date, shift.value) ? 1 : 0.6,
+                  width: '100%',
+                  fontSize: '12px',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  marginBottom: '2px'
+                }}
+              >
+                {shift.value}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-8">
+        <h3 className="text-white text-lg mb-4">
+          Result of {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+        </h3>
+        
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {dayNames.map(day => (
+            <div key={day} className="text-center text-white font-semibold p-2 bg-gray-700">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-4">
+          {days}
+        </div>
+
+        {selectedDate && selectedShift && (
+          <div className="text-center">
+            <button
+              onClick={() => setShowConfirmModal(true)}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg"
+            >
+              Confirm Booking
+            </button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="bg-[#232323] text-white min-h-screen py-10 px-4">
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-xl font-semibold mb-4">
-          Check Hall Availability: {currentHall?.name}
-        </h2>
+    <div className="absolute top-116 left-0 right-0 min-h-10 overflow-y-scroll bg-[#232323] p-7">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-[#333333] rounded-lg p-6">
+          <h2 className="text-white text-xl font-semibold mb-6 text-center">Booking Calendar</h2>
+          <p className="text-white text-center mb-6">Check Hall Availability: {currentHall?.name}</p>
 
-        <div className="flex gap-4 mb-4 items-end">
-          <div>
-            <label className="block mb-1 text-sm">Select Month</label>
-            <select
-              className="bg-gray-700 text-white px-2 py-1 rounded"
-              value={selectedMonth}
-              onChange={e => setSelectedMonth(e.target.value)}
-            >
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i} value={String(i + 1).padStart(2, '0')}>
-                  {new Date(0, i).toLocaleString('default', { month: 'long' })}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1 text-sm">Select Year</label>
-            <input
-              type="number"
-              className="bg-gray-700 text-white px-2 py-1 rounded"
-              value={selectedYear}
-              onChange={e => setSelectedYear(e.target.value)}
-            />
-          </div>
-          <button
-            onClick={fetchBookings}
-            className="bg-yellow-500 text-black font-semibold px-4 py-2 rounded"
-          >
-            Search
-          </button>
-        </div>
-
-        {showResults && (
-          <>
-            <div className="mb-2">
-              <p className="text-sm text-gray-300">Result of: {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long' })} – Hall: {currentHall?.name}</p>
-              <p className="text-xs mt-1">
-                <span className="text-green-400">● Available</span>{" "}
-                <span className="text-yellow-400 ml-2">● Pre-Booked</span>{" "}
-                <span className="text-red-500 ml-2">● Unavailable</span>
-              </p>
-            </div>
-            <table className="w-full border border-gray-600 bg-gray-900 text-sm">
-              <thead>
-                <tr>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <th key={day} className="p-2 border border-gray-700">{day}</th>
+          <div className="space-y-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 px-30">
+              <div>
+                <label className="block text-white text-sm mb-2">Select Month</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full p-2 bg-[#232323] text-white rounded border border-gray-600"
+                >
+                  <option value="">Select Month</option>
+                  {months.map(month => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
                   ))}
-                </tr>
-              </thead>
-              {renderCalendar()}
-            </table>
+                </select>
+              </div>
 
-            <div className="mt-4 text-right">
+              <div>
+                <label className="block text-white text-sm mb-2">Select Year</label>
+                <input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  placeholder="Enter Year"
+                  min="2024"
+                  max="2030"
+                  className="w-full p-2 bg-[#232323] text-white rounded border border-gray-600"
+                />
+              </div>
+            </div>
+
+            <div className="text-center">
               <button
-                className="bg-green-500 text-white font-semibold px-4 py-2 rounded"
-                onClick={handleConfirm}
+                onClick={handleSearch}
+                disabled={loading}
+                style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px', borderRadius: '0.375rem', border:'#B18E4E', rounded: '4px', fontSize: '16px', fontWeight: 'semibold' }}
               >
-                Confirm Booking
+                {loading ? 'Searching...' : 'Search'}
               </button>
             </div>
-          </>
-        )}
+          </div>
+
+          {/* Color Code Legend - Always Visible */}
+          <div className="mb-6 py-4" style={{ borderTop: '1px solid #4D4D4D', borderBottom: '1px solid #4D4D4D' }}>
+            <div className="flex justify-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <div style={{ width: '16px', height: '16px', backgroundColor: '#00B34C', borderRadius: '0.2rem' }}></div>
+                <span className="text-white text-sm">Available</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div style={{ width: '16px', height: '16px', backgroundColor: '#FE0000', borderRadius: '0.2rem' }}></div>
+                <span className="text-white text-sm">Booked</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div style={{ width: '16px', height: '16px', backgroundColor: '#F4B083', borderRadius: '0.2rem' }}></div>
+                <span className="text-white text-sm">Prebooked</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div style={{ width: '16px', height: '16px', backgroundColor: '#808080', borderRadius: '0.2rem' }}></div>
+                <span className="text-white text-sm">On-Hold</span>
+              </div>
+            </div>
+          </div>
+
+          {renderCalendar()}
+        </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-white text-lg mb-4">Confirm Booking</h3>
+            <p className="text-gray-300 mb-2">Hall: {currentHall?.name}</p>
+            <p className="text-gray-300 mb-2">Date: {selectedDate}</p>
+            <p className="text-gray-300 mb-6">Shift: {selectedShift}</p>
+            <div className="flex space-x-4">
+              <button
+                onClick={handleConfirmBooking}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default BookingCalendar;

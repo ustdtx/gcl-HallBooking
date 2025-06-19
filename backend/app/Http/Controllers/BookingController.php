@@ -21,7 +21,14 @@ class BookingController extends Controller
         $conflict = Booking::where('hall_id', $data['hall_id'])
             ->where('booking_date', $data['booking_date'])
             ->whereIn('shift', $this->getConflictingShifts($data['shift']))
-            ->where('status', '!=', 'Cancelled')
+            ->where(function ($query) {
+    $query->where('status', '!=', 'Cancelled')
+          ->where(function ($q) {
+              $q->where('status', '!=', 'Unpaid')
+                ->orWhere('expires_at', '>', now());
+          });
+})
+
             ->exists();
 
         if ($conflict) {
@@ -33,8 +40,9 @@ class BookingController extends Controller
             'hall_id' => $data['hall_id'],
             'booking_date' => $data['booking_date'],
             'shift' => $data['shift'],
-            'status' => 'Unpaid'
-        ]);
+            'status' => 'Unpaid',
+            'expires_at' => now()->addMinutes(15),
+]);
 
         return response()->json($booking, 201);
     }
