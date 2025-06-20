@@ -12,13 +12,7 @@ export const HallsProvider = ({ children }) => {
     const fetchHalls = async () => {
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL}/api/halls`;
-        console.log("Hitting API:", apiUrl);
-
         const res = await fetch(apiUrl);
-        console.log("Status:", res.status);
-
-        const text = await res.text();
-        console.log("Raw response:", text);
         const data = await res.json();
         const formatted = data.map(hall => {
           // Handle images: pick random if available, else empty string
