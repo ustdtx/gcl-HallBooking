@@ -53,4 +53,11 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/bookings/hall/{hall_id}', [BookingController::class, 'hallBookings']); 
+Route::post('/calculate-charge', [BookingController::class, 'calculateCharge']);
 
+use App\Http\Controllers\PaymentController;
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/payment/initiate', [PaymentController::class, 'initiate']);
+
+});

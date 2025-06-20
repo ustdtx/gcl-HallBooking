@@ -19,6 +19,7 @@ const BookingCalendar = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [chargeInfo, setChargeInfo] = useState(null); // Add this state
 
   const currentHall = halls.find(hall => hall.id === parseInt(hallId));
 
@@ -43,11 +44,11 @@ const BookingCalendar = () => {
     { value: 'FD', label: 'Full Day' }
   ];
 
-  /*useEffect(() => {
+  useEffect(() => {
     if (!authData?.member) {
       navigate("/login");
     }
-  }, [authData, navigate]);*/
+  }, [authData, navigate]);
 
   const handleSearch = async () => {
     if (!selectedMonth || !selectedYear) {
@@ -59,11 +60,11 @@ const BookingCalendar = () => {
     try {
       const response = await fetch(
         `${API_BASE}/api/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`,
-        /*{
+        {
           headers: {
             'Authorization': `Bearer ${authData.token}`
           }
-        }*/
+        }
       );
 
       if (response.ok) {
@@ -116,8 +117,20 @@ const BookingCalendar = () => {
     );
   };
 
+  // Helper: Check if a date is before today
+  const isPastDate = (date) => {
+    const today = new Date();
+    const checkDate = new Date(`${selectedYear}-${selectedMonth}-${date.toString().padStart(2, '0')}`);
+    // Remove time part for accurate comparison
+    today.setHours(0,0,0,0);
+    checkDate.setHours(0,0,0,0);
+    return checkDate < today;
+  };
+
   // Updated isShiftAvailable
   const isShiftAvailable = (date, shift) => {
+    if (isPastDate(date)) return false; // Disable past dates
+
     // If FD is blocking, all shifts except FD itself are unavailable
     if (isFDBlockingDay(date) && shift !== 'FD') return false;
     // If FD is being checked and FN/AN are blocking, FD is unavailable
@@ -136,6 +149,10 @@ const BookingCalendar = () => {
 
   // Update getShiftStyle
   const getShiftStyle = (date, shift) => {
+    if (isPastDate(date)) {
+      // Style as unavailable for past dates
+      return { backgroundColor: 'transparent', color: '#c5c1c1', borderColor: '#484545' };
+    }
     // If FD is blocking, all shifts except FD itself look unavailable
     if (isFDBlockingDay(date) && shift !== 'FD') {
       return { backgroundColor: 'transparent', color: '#c5c1c1', borderColor: '#484545' };
@@ -186,6 +203,36 @@ const BookingCalendar = () => {
     setSelectedShift(shift);
   };
 
+  const handleShowConfirmModal = async () => {
+    if (!selectedDate || !selectedShift) {
+      alert('Please select a date and shift');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/api/calculate-charge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authData.token}`
+        },
+        body: JSON.stringify({
+          hall_id: parseInt(hallId),
+          shift: selectedShift
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setChargeInfo(data);
+        setShowConfirmModal(true);
+      } else {
+        throw new Error('Failed to calculate charge');
+      }
+    } catch (error) {
+      console.error('Error calculating charge:', error);
+      alert('Error calculating charge');
+    }
+  };
+
   const handleConfirmBooking = async () => {
     if (!selectedDate || !selectedShift) {
       alert('Please select a date and shift');
@@ -207,12 +254,14 @@ const BookingCalendar = () => {
       });
 
       if (response.ok) {
-        alert('Booking confirmed successfully!');
+        const data = await response.json();
+        const bookingId = data.id; // Assuming the response contains the booking id as 'id'
         setShowConfirmModal(false);
         setSelectedDate('');
         setSelectedShift('');
-        // Refresh the calendar data
-        handleSearch();
+        setChargeInfo(null); // Reset charge info
+        // Redirect to payment page
+        navigate(`/payment/${bookingId}`);
       } else {
         throw new Error('Failed to create booking');
       }
@@ -359,7 +408,7 @@ const BookingCalendar = () => {
         {selectedDate && selectedShift && (
           <div className="text-center">
             <button
-              onClick={() => setShowConfirmModal(true)}
+              onClick={handleShowConfirmModal}
               style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px', borderRadius: '0.375rem', border:'#B18E4E', rounded: '4px', fontSize: '16px', fontWeight: 'semibold' }}
             >
               Confirm Booking
@@ -447,11 +496,18 @@ const BookingCalendar = () => {
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 bg-[#00000073] flex items-center justify-center z-50">
-          <div className="bg-[#444444] p-6 rounded-lg max-w-md w-full mx-4">
+          <div className="bg-[#444444] p-6 rounded-lg max-w-md w-full mx-4 text-left"> {/* Added text-left */}
             <h3 className="text-white text-lg mb-4 font-bold">Do you want to continue?</h3>
-            <p className="text-gray-300 mb-2">Hall: {currentHall?.name}</p>
-            <p className="text-gray-300 mb-2">Date: {selectedDate}</p>
-            <p className="text-gray-300 mb-6">Shift: {selectedShift}</p>
+            <p className="text-gray-300 mb-2">Hall Name: {currentHall?.name}</p>
+            <p className="text-gray-300 mb-2">Capacity: {currentHall?.capacity}</p>
+            <p className="text-gray-300 mb-2">Booking Date: {selectedDate}</p>
+            <p className="text-gray-300 mb-2">Shift: {selectedShift}</p>
+            {chargeInfo && (
+              <div className="mb-4">
+                <p className="text-[#BFA465]">Pre-Booking Amount: <span className="font-semibold">{chargeInfo["Pre-book"]} BDT</span></p>
+                <p className="text-[#BFA465]">Total Amount: <span className="font-semibold">{chargeInfo.total_charge} BDT</span></p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleConfirmBooking}
@@ -460,7 +516,7 @@ const BookingCalendar = () => {
                 Confirm
               </button>
               <button
-                onClick={() => setShowConfirmModal(false)}
+                onClick={() => { setShowConfirmModal(false); setChargeInfo(null); }}
                 style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px',  border:'#B18E4E', borderWidth: '1px', borderStyle: 'solid', borderRadius: '4px', fontSize: '16px', fontWeight: 'semibold' }}
               >
                 Cancel

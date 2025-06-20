@@ -100,4 +100,29 @@ class BookingController extends Controller
             default => [$shift]
         };
     }
+
+    public function calculateCharge(Request $request)
+{
+    $data = $request->validate([
+        'hall_id' => 'required|exists:halls,id',
+        'shift' => 'required|in:FN,AN,FD',
+    ]);
+
+    $hall = Hall::findOrFail($data['hall_id']);
+    $charges = $hall->charges;
+
+    $shiftCharge = (int) ($charges[$data['shift']] ?? 0);
+    $extraCharges = collect($charges)->only(['lawn', 'it', 'Service Charge', 'Lighting Charge'])->sum(function ($value) {
+        return (int) $value;
+    });
+
+    $preBookCharge = (int) ($charges['Pre-Book'] ?? 0);
+    $total = $shiftCharge + $extraCharges;
+
+    return response()->json([
+        'total_charge' => $total,
+        'Pre-book' => $preBookCharge,
+    ]);
+}
+
 }
