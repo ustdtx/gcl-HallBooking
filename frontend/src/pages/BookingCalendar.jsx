@@ -58,7 +58,7 @@ const BookingCalendar = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${API_BASE}/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`,
+        `${API_BASE}/api/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`,
         /*{
           headers: {
             'Authorization': `Bearer ${authData.token}`
@@ -193,7 +193,7 @@ const BookingCalendar = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/bookings`, {
+      const response = await fetch(`${API_BASE}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

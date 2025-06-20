@@ -11,7 +11,7 @@ export const HallsProvider = ({ children }) => {
   useEffect(() => {
     const fetchHalls = async () => {
       try {
-        const apiUrl = `${import.meta.env.VITE_API_URL}/halls/`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/halls/`;
         const res = await fetch(apiUrl);
         const data = await res.json();
         const formatted = data.map(hall => {

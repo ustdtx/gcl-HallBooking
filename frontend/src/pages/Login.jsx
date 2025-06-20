@@ -14,7 +14,7 @@ export default function Login() {
   
   const navigate = useNavigate(); 
   // Replace with your actual API base URL
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const API_BASE = import.meta.env.VITE_API_URL|| "";
 
   const handleNext = async () => {
     if (step === 1 && clubAccount.trim()) {
@@ -28,7 +28,7 @@ export default function Login() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_BASE}/auth/request-otp`, {
+      const res = await fetch(`${API_BASE}/api/auth/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -53,7 +53,7 @@ export default function Login() {
     setLoading(true);
     setMessage("");
     try {
-      const res = await fetch(`${API_BASE}/auth/verify-otp`, {
+      const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
