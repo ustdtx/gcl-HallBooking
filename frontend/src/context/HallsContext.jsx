@@ -12,22 +12,14 @@ export const HallsProvider = ({ children }) => {
     const fetchHalls = async () => {
       try {
         const apiUrl = `${import.meta.env.VITE_API_URL}/api/halls`;
-        fetch(apiUrl)
-          .then(res => {
-            console.log('Response status:', res.status);
-            return res.json();
-          })
-          .then(data => {
-            console.log('Fetched halls:', data);
-            setHalls(data);
-          })
-          .catch(err => {
-            console.error('Fetch failed:', err);
-            setHalls([]);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
+        console.log("Hitting API:", apiUrl);
+
+        const res = await fetch(apiUrl);
+        console.log("Status:", res.status);
+
+        const text = await res.text();
+        console.log("Raw response:", text);
+        const data = await res.json();
         const formatted = data.map(hall => {
           // Handle images: pick random if available, else empty string
           let image = "";
