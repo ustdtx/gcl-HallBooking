@@ -11,9 +11,23 @@ export const HallsProvider = ({ children }) => {
   useEffect(() => {
     const fetchHalls = async () => {
       try {
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/halls/`;
-        const res = await fetch(apiUrl);
-        const data = await res.json();
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/halls`;
+        fetch(apiUrl)
+          .then(res => {
+            console.log('Response status:', res.status);
+            return res.json();
+          })
+          .then(data => {
+            console.log('Fetched halls:', data);
+            setHalls(data);
+          })
+          .catch(err => {
+            console.error('Fetch failed:', err);
+            setHalls([]);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
         const formatted = data.map(hall => {
           // Handle images: pick random if available, else empty string
           let image = "";

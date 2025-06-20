@@ -79,8 +79,8 @@ export default function Login() {
 
   return (
     <>
-      <div className="backdrop-blur-lg bg-[#FFFFFF03]/10 p-8 rounded-xl w-[360px] text-white text-center shadow-lg border border-[#E0E0E0]">
-        <div className="mb-6">
+      <div className="px-4 w-full max-w-[360px] mx-auto backdrop-blur-lg bg-[#FFFFFF03]/10 p-8 rounded-xl text-white text-center shadow-lg border border-[#E0E0E0]">
+        <div className="mb-6 ">
           <img
             src="/assets/gclogo.png"
             alt="Logo"

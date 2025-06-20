@@ -360,7 +360,7 @@ const BookingCalendar = () => {
           <div className="text-center">
             <button
               onClick={() => setShowConfirmModal(true)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg"
+              style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px', borderRadius: '0.375rem', border:'#B18E4E', rounded: '4px', fontSize: '16px', fontWeight: 'semibold' }}
             >
               Confirm Booking
             </button>
@@ -446,22 +446,22 @@ const BookingCalendar = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-white text-lg mb-4">Confirm Booking</h3>
+        <div className="fixed inset-0 bg-[#00000073] flex items-center justify-center z-50">
+          <div className="bg-[#444444] p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-white text-lg mb-4 font-bold">Do you want to continue?</h3>
             <p className="text-gray-300 mb-2">Hall: {currentHall?.name}</p>
             <p className="text-gray-300 mb-2">Date: {selectedDate}</p>
             <p className="text-gray-300 mb-6">Shift: {selectedShift}</p>
-            <div className="flex space-x-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleConfirmBooking}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded"
+                style={{ backgroundColor:"#444444", color: '#FFFFFF', padding: '8px 24px',  border:'#FFFFFF', borderWidth: '1px', borderStyle: 'solid', borderRadius: '4px', fontSize: '16px', fontWeight: 'semibold' }}
               >
                 Confirm
               </button>
               <button
                 onClick={() => setShowConfirmModal(false)}
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded"
+                style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px',  border:'#B18E4E', borderWidth: '1px', borderStyle: 'solid', borderRadius: '4px', fontSize: '16px', fontWeight: 'semibold' }}
               >
                 Cancel
               </button>
