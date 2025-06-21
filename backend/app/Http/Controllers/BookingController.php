@@ -107,17 +107,21 @@ class BookingController extends Controller
         'hall_id' => 'required|exists:halls,id',
         'shift' => 'required|in:FN,AN,FD',
     ]);
-
     $hall = Hall::findOrFail($data['hall_id']);
-    $charges = $hall->charges;
+    $charges= $hall->charges ?? '{}';
+    $excludedKeys = ['FN', 'AN', 'FD', 'Pre-Book'];
 
     $shiftCharge = (int) ($charges[$data['shift']] ?? 0);
-    $extraCharges = collect($charges)->only(['lawn', 'it', 'Service Charge', 'Lighting Charge'])->sum(function ($value) {
-        return (int) $value;
-    });
+
+    $extraCharges = collect($charges)
+        ->except($excludedKeys)
+        ->sum(function ($value) {
+            return (int) $value;
+        });
 
     $preBookCharge = (int) ($charges['Pre-Book'] ?? 0);
     $total = $shiftCharge + $extraCharges;
+
 
     return response()->json([
         'total_charge' => $total,

@@ -12,58 +12,83 @@ use Illuminate\Support\Facades\Http;
 class PaymentController extends Controller
 {
     public function initiate(Request $request)
-    {
-        $data = $request->validate([
-            'booking_id' => 'required|exists:bookings,id',
-            'purpose' => 'required|in:Pre-Book,Final'
-        ]);
+{
+    $data = $request->validate([
+        'booking_id' => 'required|exists:bookings,id',
+        'purpose' => 'required|in:Pre-Book,Final'
+    ]);
 
-        $booking = Booking::with('hall')->findOrFail($data['booking_id']);
-        $charges = is_array($booking->hall->charges)
-            ? $booking->hall->charges
-            : json_decode($booking->hall->charges, true);
+    $booking = Booking::with('hall')->findOrFail($data['booking_id']);
 
-        $amount = $data['purpose'] === 'Pre-Book'
-            ? (int) ($charges['Pre-Book'] ?? 0)
-            : ((int) ($charges[$booking->shift] ?? 0) +
-               collect($charges)->only(['lawn', 'it', 'Service Charge', 'Lighting Charge'])->sum(fn($v) => (int) $v)
-               - (int) ($charges['Pre-Book'] ?? 0));
+    $charges = is_array($booking->hall->charges)
+        ? $booking->hall->charges
+        : json_decode($booking->hall->charges, true);
 
-        $tran_id = uniqid('TXN_');
+    // Extract shift charge
+    $shiftCharge = (int) ($charges[$booking->shift] ?? 0);
+    $preBookCharge = (int) ($charges['Pre-Book'] ?? 0);
 
-        Payment::create([
-            'booking_id' => $booking->id,
-            'type' => $data['purpose'],
-            'amount' => $amount,
-            'tran_id' => $tran_id,
-            'status' => 'Pending'
-        ]);
+    // Sum all charges excluding FN, AN, FD, and Pre-Book
+    $excluded = ['FN', 'AN', 'FD', 'Pre-Book'];
+    $extraCharges = collect($charges)
+        ->except($excluded)
+        ->sum(fn($value) => (int) $value);
 
-        $payload = [
-            'store_id' => env('SSLCZ_STORE_ID'),
-            'store_passwd' => env('SSLCZ_STORE_PASSWORD'),
-            'total_amount' => $amount,
-            'currency' => "BDT",
-            'tran_id' => $tran_id,
-            'success_url' => route('payment.success'),
-            'fail_url' => route('payment.fail'),
-            'cancel_url' => route('payment.cancel'),
-            'cus_name' => auth()->user()->name,
-            'cus_email' => auth()->user()->email,
-            'cus_add1' => 'Dhaka',
-            'cus_phone' => auth()->user()->phone ?? '01700000000',
-            'value_a' => $booking->id,
-            'value_b' => $data['purpose'],
-        ];
+    // Final amount logic
+    $amount = $data['purpose'] === 'Pre-Book'
+        ? $preBookCharge
+        : ($shiftCharge + $extraCharges - $preBookCharge);
 
-        $response = Http::asForm()->post(env('SSLCZ_API_URL'), $payload);
+    $tran_id = uniqid('TXN_');
 
-        if ($response->successful() && $response->json('GatewayPageURL')) {
-            return redirect($response->json('GatewayPageURL'));
-        }
+    Payment::create([
+        'booking_id' => $booking->id,
+        'type' => $data['purpose'],
+        'amount' => $amount,
+        'tran_id' => $tran_id,
+        'status' => 'Pending'
+    ]);
 
-        return response()->json(['error' => 'SSLCommerz request failed'], 500);
-    }
+    $payload = [
+        'store_id' => env('SSLCZ_STORE_ID'),
+        'store_passwd' => env('SSLCZ_STORE_PASSWORD'),
+        'total_amount' => $amount,
+        'currency' => "BDT",
+        'tran_id' => $tran_id,
+        'success_url' => route('payment.success'),
+        'fail_url' => route('payment.fail'),
+        'cancel_url' => route('payment.cancel'),
+        'cus_name' => auth()->user()->name,
+        'cus_email' => auth()->user()->email,
+        'cus_add1' => 'Dhaka',
+        'cus_city' => 'Dhaka',
+        'cus_country' => 'Bangladesh',
+        'shipping_method' => 'NO',
+        'product_name' => $booking->hall->name . ' Booking',
+        'product_category' => 'Hall Booking',
+        'product_profile' => 'general',
+        'cus_postcode' => '1212',
+        'cus_phone' => auth()->user()->phone ?? '01700000000',
+        'value_a' => $booking->id,
+        'value_b' => $data['purpose'],
+    ];
+
+    $response = Http::asForm()->post(env('SSLCZ_API_URL'), $payload);
+
+    if ($response->successful() && $response->json('GatewayPageURL')) {
+    return response()->json([
+        'gateway_url' => $response->json('GatewayPageURL')
+    ]);
+}
+
+
+    return response()->json([
+    'error' => 'SSLCommerz request failed',
+    'status' => $response->status(),
+    'response' => $response->body(),
+], 500);
+}
+
 
     public function success(Request $request)
     {

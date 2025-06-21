@@ -20,6 +20,8 @@ Route::get('/', function () {
 use App\Http\Controllers\PaymentController;
 
 
-Route::post('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
+Route::post('/payment/success', [PaymentController::class, 'success'])
+    ->name('payment.success')
+    ->withoutMiddleware(['auth', 'verified', 'csrf']);
 Route::post('/payment/fail', [PaymentController::class, 'fail'])->name('payment.fail');
 Route::post('/payment/cancel', [PaymentController::class, 'cancel'])->name('payment.cancel');

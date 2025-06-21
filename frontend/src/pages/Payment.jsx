@@ -16,6 +16,7 @@ export default function Payment() {
   const [showFirstModal, setShowFirstModal] = useState(false);
   const [showSecondModal, setShowSecondModal] = useState(false);
   const [paymentPurpose, setPaymentPurpose] = useState(null);
+  console.log(authData.token);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -41,31 +42,36 @@ export default function Payment() {
     fetchBooking();
   }, [bookingId, authData.token]);
 
-  const initiatePayment = async (purpose) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/payment/initiate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authData.token}`,
-        },
-        body: JSON.stringify({
-          booking_id: bookingId,
-          purpose,
-        }),
-      });
+const initiatePayment = async (purpose) => {
+  try {
+    const res = await fetch(`${API_BASE}/api/payment/initiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authData.token}`,
+      },
+      body: JSON.stringify({
+        booking_id: bookingId,
+        purpose,
+      }),
+    });
 
-      const debugText = await res.text();
-      console.log('Status:', res.status);
-      console.log('Response:', debugText);
-
-      if (!res.ok) throw new Error('Failed to initiate payment');
-      const redirect = await res.text();
-      window.location.href = redirect;
-    } catch (err) {
-      alert(err.message);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Failed to initiate payment: ${errorText}`);
     }
-  };
+
+    const data = await res.json(); // parse JSON once
+    if (data.gateway_url) {
+      window.location.href = data.gateway_url; // redirect user to SSLCommerz payment page
+    } else {
+      throw new Error('No payment URL received');
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
 
   const handleClick = () => {
     let purpose = '';
