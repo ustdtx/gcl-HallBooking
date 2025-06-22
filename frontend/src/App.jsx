@@ -11,6 +11,8 @@ import Login from "./pages/Login";
 import Charges from "./pages/Charges"; 
 import BookingCalendar from "./pages/BookingCalendar";
 import Payment from './pages/Payment';
+import ReservationHistory from './pages/ReservationHistory';
+import ReservationDetails from './pages/ReservationDetails';
 
 
 function App() {
@@ -63,6 +65,8 @@ function App() {
             <Route path="/charges/:hallId" element={<Charges />} />
             <Route path="/booking/:hallId/calendar" element={<BookingCalendar />} />
             <Route path="/payment/:bookingId" element={<Payment />} />
+            <Route path="/reservations" element={<ReservationHistory />} />
+            <Route path="/reservations/:bookingId" element={<ReservationDetails />} />
 
           </Routes>
         </Router>

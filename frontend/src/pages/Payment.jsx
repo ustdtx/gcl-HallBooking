@@ -102,9 +102,9 @@ const initiatePayment = async (purpose) => {
       <div className="bg-[#333333] text-white p-6 rounded-lg w-96 border border-[#444444]">
         <h3 className="text-lg font-semibold mb-2">Please Note</h3>
         <p className="mb-4 text-sm">{children}</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={onCancel} className="border border-white px-4 py-2 rounded">Cancel</button>
-          <button onClick={onContinue} className="bg-[#BFA465] text-black px-4 py-2 rounded">{continueLabel}</button>
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={onCancel} style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px',  border:'#B18E4E', borderWidth: '1px', borderStyle: 'solid', borderRadius: '4px', fontSize: '16px', fontWeight: 'semibold' }}>Cancel</button>
+          <button onClick={onContinue} style={{ backgroundColor:"#444444", color: '#FFFFFF', padding: '8px 24px',  border:'#FFFFFF', borderWidth: '1px', borderStyle: 'solid', borderRadius: '4px', fontSize: '16px', fontWeight: 'semibold' }}>{continueLabel}</button>
         </div>
       </div>
     </div>
@@ -114,7 +114,7 @@ const initiatePayment = async (purpose) => {
   if (error) return <div className="text-red-500 text-center mt-20">{error}</div>;
 
   return (
-    <div className="absolute top-[116px] left-0 right-0 bg-[#232323] min-h-screen text-white">
+    <div className="absolute top-116 left-0 right-0 bg-[#232323] min-h-screen text-white">
       <div className="max-w-xl mx-auto mt-10 p-6 rounded-lg bg-[#333333] border border-[#444444]">
         <h2 className="text-center text-lg mb-4">Select Payment Option</h2>
         <div className="divide-y divide-[#444444]">

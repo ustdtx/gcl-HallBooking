@@ -120,7 +120,7 @@ class PaymentController extends Controller
 
         $booking->save();
 
-        return response()->json(['message' => 'Payment success']);
+        return redirect(env('FRONTEND_URL') . '/reservations');
     }
 
     public function fail(Request $request)

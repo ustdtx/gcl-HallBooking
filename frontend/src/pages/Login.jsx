@@ -10,6 +10,7 @@ export default function Login() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [otpDebug, setOtpDebug] = useState(""); // Add this line
   const { setAuthData } = useAuth();
   
   const navigate = useNavigate(); 
@@ -36,10 +37,11 @@ export default function Login() {
           email_or_phone: emailOrPhone,
         }),
       });
+      const data = await res.json(); // Always parse JSON
       if (res.ok) {
         setStep(3);
+        setOtpDebug(data.otp_debug || ""); // Save otp_debug if present
       } else {
-        const data = await res.json();
         setMessage(data.message || "Failed to request OTP");
       }
     } catch (e) {
@@ -137,6 +139,11 @@ export default function Login() {
             <div className="text-left mb-2 text-sm font-medium text-gray-300">
               Verification Code
             </div>
+            {otpDebug && (
+              <div className="mb-2 text-xs text-yellow-400">
+                Debug OTP: <span className="font-mono">{otpDebug}</span>
+              </div>
+            )}
             <div className="flex justify-between mb-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="w-10">

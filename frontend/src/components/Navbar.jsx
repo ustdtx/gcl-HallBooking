@@ -3,11 +3,19 @@ import { useAuth } from "../context/AuthContext"; // Import the context
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 export default function Navbar() {
-  const { authData } = useAuth();
-  const navigate = useNavigate(); // Initialize navigate
+  const { authData, setAuthData } = useAuth();
+  const navigate = useNavigate();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const isLoggedIn = !!authData?.member;
   const firstName = authData?.member?.name ? authData.member.name.split(" ")[0] : "Member";
   const profilePic = authData?.member?.profilePic || "/assets/default-profile.png";
+
+  const handleLogout = () => {
+    setAuthData(null); // This will also clear it from localStorage
+    setDropdownOpen(false);
+    navigate("/login");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 w-full bg-[#232323] border-[#444444] py-2 px-4 flex items-center shadow-md z-50">
@@ -74,16 +82,20 @@ export default function Navbar() {
         </a>
 
         {isLoggedIn && (
-          <a
-            href="#"
+          <button
             className="font-medium flex items-center"
             style={{
               color: "#fff",
               fontFamily: "'Playfair Display', serif",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
             }}
+            onClick={() => navigate("/reservations")}
           >
             Reservation History
-          </a>
+          </button>
         )}
 
         {!isLoggedIn ? (
@@ -99,18 +111,39 @@ export default function Navbar() {
             Login
           </button>
         ) : (
-          <div className="flex items-center">
+          <div className="relative flex items-center">
             <img
               src={profilePic}
               alt="Profile"
-              className="h-8 w-8 rounded-full object-cover border border-[#222] bg-white"
+              className="h-8 w-8 rounded-full object-cover border border-[#222] bg-white cursor-pointer"
+              onClick={() => setDropdownOpen((open) => !open)}
             />
             <span
-              className="text-white font-semibold ml-2"
+              className="text-white font-semibold ml-2 cursor-pointer"
               style={{ fontFamily: "'Playfair Display', serif" }}
+              onClick={() => setDropdownOpen((open) => !open)}
             >
               {firstName}
             </span>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-10 w-40 bg-[#232323] rounded shadow-lg z-50">
+                <button
+                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    navigate("/profile");
+                  }}
+                >
+                  Profile
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1,12 +1,21 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
-// Create the context
 const AuthContext = createContext();
 
-// Provider component
 export function AuthProvider({ children }) {
-  // This state will hold your login information (e.g., user, token, etc.)
-  const [authData, setAuthData] = useState(null);
+  const [authData, setAuthData] = useState(() => {
+    // Load from localStorage if available
+    const stored = localStorage.getItem("authData");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  useEffect(() => {
+    if (authData) {
+      localStorage.setItem("authData", JSON.stringify(authData));
+    } else {
+      localStorage.removeItem("authData");
+    }
+  }, [authData]);
 
   return (
     <AuthContext.Provider value={{ authData, setAuthData }}>
@@ -15,7 +24,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook for easy access
 export function useAuth() {
   return useContext(AuthContext);
 }
