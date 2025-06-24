@@ -6,14 +6,15 @@ import './index.css';
 import './App.css'
 import Home from './pages/Home';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
 import Login from "./pages/Login";
 import Charges from "./pages/Charges"; 
 import BookingCalendar from "./pages/BookingCalendar";
 import Payment from './pages/Payment';
 import ReservationHistory from './pages/ReservationHistory';
 import ReservationDetails from './pages/ReservationDetails';
-
+import UpdateBooking from './pages/UpdateBooking';
+import Profile from './pages/Profile';
+import Policy from './pages/Policy';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -67,6 +68,9 @@ function App() {
             <Route path="/payment/:bookingId" element={<Payment />} />
             <Route path="/reservations" element={<ReservationHistory />} />
             <Route path="/reservations/:bookingId" element={<ReservationDetails />} />
+            <Route path="/update-booking/:bookingId" element={<UpdateBooking />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/policy/:hallId" element={<Policy />} />
 
           </Routes>
         </Router>

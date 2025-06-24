@@ -50,10 +50,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings/user', [BookingController::class, 'userBookings']); // user's all bookings
     // hall bookings by month
     Route::put('/bookings/{id}/cancel', [BookingController::class, 'cancel']); // cancel booking
+// Route for updating booking
+    Route::put('/bookings/{id}', [BookingController::class, 'update']);
 });
 
 Route::get('/bookings/hall/{hall_id}', [BookingController::class, 'hallBookings']); 
 Route::post('/calculate-charge', [BookingController::class, 'calculateCharge']);
+Route::get('/bookings/{id}', [BookingController::class, 'show']);
 
 use App\Http\Controllers\PaymentController;
 

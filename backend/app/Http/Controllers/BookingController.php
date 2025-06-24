@@ -81,6 +81,7 @@ class BookingController extends Controller
             ->get()
             ->map(function ($booking) {
                 return [
+                    'id' => $booking->id,
                     'booking_date' => $booking->booking_date,
                     'shift' => $booking->shift,
                     'status' => $booking->status,
@@ -165,6 +166,17 @@ public function update(Request $request, $id)
     $booking->booking_date = $data['booking_date'];
     $booking->shift = $data['shift'];
     $booking->save();
+
+    return response()->json($booking);
+}
+
+public function show($id)
+{
+    $booking = Booking::with(['hall', 'member'])->find($id);
+
+    if (!$booking) {
+        return response()->json(['error' => 'Booking not found'], 404);
+    }
 
     return response()->json($booking);
 }

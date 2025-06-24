@@ -106,130 +106,136 @@ export default function ReservationDetails() {
 
   return (
     <>
-      <div className="absolute top-12 left-0 right-0 px-120 bg-[#232323] text-white min-h-screen p-6">
-        {/* Back Link */}
-        <div className="mb-4 text-left">
-          <a
-            href="/reservations"
-            className="text-[#BFA465] underline hover:text-[#d1b97c] transition"
+      <div className="absolute top-12 left-0 right-0 bg-[#232323] text-white min-h-screen py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-8">
+          {/* Back Link */}
+          <div className="mb-4 text-left">
+            <a
+              href="/reservations"
+              className="text-[#BFA465] underline hover:text-[#d1b97c] transition"
+            >
+              ← Back
+            </a>
+          </div>
+
+          <div
+            style={{
+              background: "#333333",
+              borderRadius: "0.75rem",
+              overflow: "hidden",
+            }}
           >
-            ← Back
-          </a>
-        </div>
-
-        <div
-          style={{
-            background: "#333333",
-            borderRadius: "0.75rem",
-            overflow: "hidden",
-          }}
-        >
-          <h2 className="text-center text-xl text-[#BFA465] font-bold py-4">
-            {hall.name}
-          </h2>
-
-          <img
-            src={`${API_BASE}/${hall.images[0]}`}
-            alt="Hall"
-            className="w-full max-h-[400px] object-cover"
-          />
-
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-[#BFA465] mb-1">
+            <h2 className="text-center text-xl text-[#BFA465] font-bold py-4">
               {hall.name}
-            </h3>
-            <p className="text-gray-300 mb-4">
-              Maximum capacity: {hall.capacity}
-            </p>
+            </h2>
 
-            <div className="border border-gray-600 p-4 rounded">
-              <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-sm">
-                <p><b>Name:</b> {authData.member.name}</p>
-                <p><b>Club Account:</b> {authData.member.club_account}</p>
-                <p><b>Status:</b> {displayStatus}</p>
-                <p><b>Total Amount:</b> {fullAmount}tk</p>
-                <p><b>Pre Booking Amount:</b> {prebookAmount}tk</p>
-                <p><b>Amount to be Paid:</b> {remaining.toLocaleString()}tk</p>
-                <p><b>Date:</b> {new Date(booking_date).toLocaleDateString()}</p>
-                <p><b>Shift:</b> {shiftLabel}</p>
+            <img
+              src={`${API_BASE}/${hall.images[0]}`}
+              alt="Hall"
+              className="w-full max-h-[400px] object-cover"
+            />
+
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-[#BFA465] mb-1">
+                {hall.name}
+              </h3>
+              <p className="text-gray-300 mb-4">
+                Maximum capacity: {hall.capacity}
+              </p>
+
+              <div className="border border-[#B18E4E] p-4 rounded">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-sm">
+                  <p><b>Name:</b> {authData.member.name}</p>
+                  <p><b>Club Account:</b> {authData.member.club_account}</p>
+                  <p><b>Status:</b> {displayStatus}</p>
+                  <p><b>Total Amount:</b> {fullAmount}tk</p>
+                  <p><b>Pre Booking Amount:</b> {prebookAmount}tk</p>
+                  <p><b>Amount to be Paid:</b> {remaining.toLocaleString()}tk</p>
+                  <p><b>Date:</b> {new Date(booking_date).toLocaleDateString()}</p>
+                  <p><b>Shift:</b> {shiftLabel}</p>
+                </div>
               </div>
-            </div>
 
-            {/* Centered 2x2 Button Grid */}
-            <div className="flex flex-col items-center mt-6 gap-3">
-              <div className="flex flex-row gap-3 w-full justify-center">
-                {/* Payment Button */}
-                <button
-                  onClick={handlePayment}
-                  disabled={status === "Confirmed"}
-                  style={{
-                    backgroundColor: status === "Confirmed" ? "#232323" : "#BFA465",
-                    color: "#fff",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "0.5rem",
-                    border: "none",
-                    minWidth: "160px",
-                    opacity: status === "Confirmed" ? 0.6 : 1,
-                    cursor: status === "Confirmed" ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {status === "Unpaid"
-                    ? "Pre-Book Now"
-                    : status === "Confirmed"
-                    ? "Payment Complete"
-                    : "Make Full Payment"}
-                </button>
+              {/* Centered 2x2 Button Grid */}
+              <div className="flex flex-col items-center mt-6 gap-3">
+                <div className="flex flex-row gap-3 w-full justify-center">
+                  {/* Payment Button */}
+                  <button
+                    onClick={handlePayment}
+                    disabled={status === "Confirmed"}
+                    style={{
+                      backgroundColor: status === "Confirmed" ? "#232323" : "#BFA465",
+                      color: "#fff",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      border: "none",
+                      minWidth: "160px",
+                      opacity: status === "Confirmed" ? 0.6 : 1,
+                      cursor: status === "Confirmed" ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {status === "Unpaid"
+                      ? "Pre-Book Now"
+                      : status === "Confirmed"
+                      ? "Payment Complete"
+                      : "Make Full Payment"}
+                  </button>
 
-                {/* Edit Button */}
-                <button
-                  style={{
-                    border: "1.5px solid #B18E4E",
-                    color: "white",
-                    backgroundColor: "transparent",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "0.5rem",
-                    minWidth: "160px",
-                  }}
-                >
-                  Edit Booking
-                </button>
-              </div>
-              <div className="flex flex-row gap-3 w-full justify-center">
-                {/* Cancel Button */}
-                <button
-                  onClick={handleCancel}
-                  style={{
-                    border: "1.5px solid #F5534E",
-                    color: "#F5534E",
-                    backgroundColor: "transparent",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "0.5rem",
-                    minWidth: "160px",
-                  }}
-                >
-                  Cancel Reservation
-                </button>
+                  {/* Edit Button */}
+                  <button
+                    onClick={() => navigate(`/update-booking/${bookingId}`)}
+                    disabled={!(status === "Pre-Booked" || status === "Unpaid")}
+                    style={{
+                      border: "1.5px solid #B18E4E",
+                      color: "white",
+                      backgroundColor: "transparent",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      minWidth: "160px",
+                      opacity: !(status === "Pre-Booked" || status === "Unpaid") ? 0.6 : 1,
+                      cursor: !(status === "Pre-Booked" || status === "Unpaid") ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Edit Booking
+                  </button>
+                </div>
+                <div className="flex flex-row gap-3 w-full justify-center">
+                  {/* Cancel Button */}
+                  <button
+                    onClick={handleCancel}
+                    style={{
+                      border: "1.5px solid #F5534E",
+                      color: "#F5534E",
+                      backgroundColor: "transparent",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      minWidth: "160px",
+                    }}
+                  >
+                    Cancel Reservation
+                  </button>
 
-                {/* Download PDF */}
-                <button
-                  onClick={() => window.open(`${API_BASE}/${hall.policy_pdf}`, "_blank")}
-                  style={{
-                    border: "1.5px solid #B18E4E",
-                    color: "white",
-                    backgroundColor: "transparent",
-                    padding: "0.5rem 1rem",
-                    borderRadius: "0.5rem",
-                    minWidth: "160px",
-                  }}
-                >
-                  Download PDF
-                </button>
+                  {/* Download PDF */}
+                  <button
+                    onClick={() => window.open(`${API_BASE}/${hall.policy_pdf}`, "_blank")}
+                    style={{
+                      border: "1.5px solid #B18E4E",
+                      color: "white",
+                      backgroundColor: "transparent",
+                      padding: "0.5rem 1rem",
+                      borderRadius: "0.5rem",
+                      minWidth: "160px",
+                    }}
+                  >
+                    Download PDF
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="absolute bg-[#232323] left-0">
-          <Footer />
+          <div className="absolute bg-[#232323] left-0">
+            <Footer />
+          </div>
         </div>
       </div>
     </>
