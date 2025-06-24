@@ -1,21 +1,52 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import Footer from '../components/Footer.jsx';
 import { useHalls } from '../context/HallsContext';
 import { Link } from "react-router-dom";
 
 const GulshanClub = () => {
   const { halls, loading } = useHalls();
+  const contentRef = useRef(null);
+  const coverRef = useRef(null);
+
+  useEffect(() => {
+    const updateCoverHeight = () => {
+      if (contentRef.current && coverRef.current) {
+        const contentHeight = contentRef.current.scrollHeight;
+        const coverStartOffset = 464; // equivalent to top-116 (116 * 0.25rem = 29rem = 464px)
+        const totalHeightNeeded = contentHeight + coverStartOffset;
+        
+        coverRef.current.style.height = `${totalHeightNeeded}px`;
+      }
+    };
+
+    // Update on mount and when halls data changes
+    updateCoverHeight();
+    
+    // Update on window resize
+    const handleResize = () => {
+      setTimeout(updateCoverHeight, 100); // Small delay to ensure layout is complete
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, [halls, loading]);
 
   return (
-    <div className="fixed top-0  left-0 right-0 w-full h-full  overflow-y-scroll ">
-      <div className="relative inset-0 top-72 left-0 right-0 w-full py-8  flex justify-center items-start  z-10  ">
-        <div className="px-6 flex flex-col items-center max-w-6xl w-full text-white space-y-12">
+    <div className="fixed top-0 left-0 right-0 w-full h-full overflow-y-scroll">
+      {/* Hero background - stays the same */}
+      
+      <div className="relative inset-0 top-72 left-0 right-0 w-full py-8 flex justify-center items-start z-10">
+        <div 
+          ref={contentRef}
+          className="px-6 flex flex-col items-center max-w-6xl w-full text-white space-y-12"
+        >
           {/* Hall Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
             {loading ? (
-              <div className="col-span-4 text-center text-white">Loading...</div>
+              <div className="col-span-1 sm:col-span-2 md:col-span-2 lg:col-span-4 text-center text-white">Loading...</div>
             ) : halls.length === 0 ? (
-              <div className="col-span-4 text-center text-white">No halls found.</div>
+              <div className="col-span-1 sm:col-span-2 md:col-span-2 lg:col-span-4 text-center text-white">No halls found.</div>
             ) : (
               halls.map((hall) => (
                 <div
@@ -79,7 +110,13 @@ const GulshanClub = () => {
           <Footer />
         </div>
       </div>
-      <div className="absolute top-116 w-full h-full left-0 right-0 bg-[#232323] z-[5] "></div>
+      
+      {/* Dynamic cover background - this is the key fix */}
+      <div 
+        ref={coverRef}
+        className="absolute top-116 w-full left-0 right-0 bg-[#232323] z-[5]"
+        style={{ minHeight: '100vh' }} // Fallback minimum height
+      />
     </div>
   );
 };

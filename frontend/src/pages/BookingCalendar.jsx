@@ -2,14 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useHalls } from '../context/HallsContext';
+import { useBooking } from '../context/BookingContext';
 import Footer from '../components/Footer';
 const API_BASE = import.meta.env.VITE_API_URL;
+
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear + i);
 
 const BookingCalendar = () => {
   const { authData } = useAuth();
   const navigate = useNavigate();
   const { halls } = useHalls();
   const { hallId } = useParams();
+  const { bookingState, setBookingState } = useBooking();
   
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
@@ -20,6 +25,7 @@ const BookingCalendar = () => {
   const [selectedShift, setSelectedShift] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [chargeInfo, setChargeInfo] = useState(null); // Add this state
+  const [agreedTerms, setAgreedTerms] = useState(false);
 
   const currentHall = halls.find(hall => hall.id === parseInt(hallId));
 
@@ -44,12 +50,6 @@ const BookingCalendar = () => {
     { value: 'FD', label: 'Full Day' }
   ];
 
-  useEffect(() => {
-    if (!authData?.member) {
-      navigate("/login");
-    }
-  }, [authData, navigate]);
-
   const handleSearch = async () => {
     if (!selectedMonth || !selectedYear) {
       alert('Please select both month and year');
@@ -61,9 +61,7 @@ const BookingCalendar = () => {
       const response = await fetch(
         `${API_BASE}/api/bookings/hall/${hallId}?month=${selectedYear}-${selectedMonth}`,
         {
-          headers: {
-            'Authorization': `Bearer ${authData.token}`
-          }
+          method: 'GET',
         }
       );
 
@@ -71,6 +69,10 @@ const BookingCalendar = () => {
         const data = await response.json();
         setBookings(data);
         setShowResults(true);
+        setBookingState(prev => ({
+          ...prev,
+          showResults: true, // <-- Add this line
+        }));
       } else {
         throw new Error('Failed to fetch bookings');
       }
@@ -196,9 +198,14 @@ const BookingCalendar = () => {
   };
 
   const handleDateShiftSelect = (date, shift) => {
-    if (!isShiftAvailable(date, shift)) return;
-    
     const dateStr = `${selectedYear}-${selectedMonth}-${date.toString().padStart(2, '0')}`;
+    // If already selected, unselect
+    if (selectedDate === dateStr && selectedShift === shift) {
+      setSelectedDate('');
+      setSelectedShift('');
+      return;
+    }
+    if (!isShiftAvailable(date, shift)) return;
     setSelectedDate(dateStr);
     setSelectedShift(shift);
   };
@@ -206,6 +213,11 @@ const BookingCalendar = () => {
   const handleShowConfirmModal = async () => {
     if (!selectedDate || !selectedShift) {
       alert('Please select a date and shift');
+      return;
+    }
+    if (!authData?.member) {
+      // Save state is already handled by context
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
     try {
@@ -316,12 +328,14 @@ const BookingCalendar = () => {
               const isSelected = selectedDate === dateStr && selectedShift === shift.value;
               const booking = getBookingStatus(date, shift.value);
               const isAvailable = isShiftAvailable(date, shift.value);
+              // New: Use isShiftDisabled for visual disabling
+              const visuallyDisabled = selectedDate === dateStr && isShiftDisabled(shift.value);
 
               return (
                 <button
                   key={shift.value}
-                  onClick={() => isAvailable && handleDateShiftSelect(date, shift.value)}
-                  disabled={!isAvailable}
+                  onClick={() => isAvailable && !visuallyDisabled && handleDateShiftSelect(date, shift.value)}
+                  disabled={!isAvailable || visuallyDisabled}
                   style={{
                     ...getShiftStyle(date, shift.value),
                     borderWidth: '1px',
@@ -334,9 +348,10 @@ const BookingCalendar = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    opacity: isAvailable ? 1 : 0.6,
-                    cursor: isAvailable ? 'pointer' : 'not-allowed',
+                    opacity: (!isAvailable || visuallyDisabled) ? 0.6 : 1,
+                    cursor: (!isAvailable || visuallyDisabled) ? 'not-allowed' : 'pointer',
                     position: 'relative',
+                    filter: visuallyDisabled ? 'grayscale(0.7)' : undefined,
                   }}
                 >
                   <span>{shift.value}</span>
@@ -409,15 +424,104 @@ const BookingCalendar = () => {
           <div className="text-center">
             <button
               onClick={handleShowConfirmModal}
-              style={{ backgroundColor: '#BFA465',  color: '#FFFFFF', padding: '8px 24px', borderRadius: '0.375rem', border:'#B18E4E', rounded: '4px', fontSize: '16px', fontWeight: 'semibold' }}
+              disabled={!agreedTerms}
+              style={{
+                backgroundColor: agreedTerms ? '#BFA465' : '#888888',
+                color: '#FFFFFF',
+                padding: '8px 24px',
+                borderRadius: '0.375rem',
+                border: '#B18E4E',
+                fontSize: '16px',
+                fontWeight: 'semibold',
+                cursor: agreedTerms ? 'pointer' : 'not-allowed',
+                opacity: agreedTerms ? 1 : 0.7,
+              }}
             >
               Confirm Booking
             </button>
+            {/* Terms & Conditions */}
+            <div className="flex items-center justify-center mt-4">
+  <span
+    onClick={() => setAgreedTerms(!agreedTerms)}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '18px',
+      height: '18px',
+      border: '2px solid #B18E4E',
+      borderRadius: '50%',
+      marginRight: '10px',
+      cursor: 'pointer',
+      background: 'transparent',
+      position: 'relative',
+    }}
+    tabIndex={0}
+    role="checkbox"
+    aria-checked={agreedTerms}
+  >
+    {agreedTerms && (
+      <svg width="12" height="12" viewBox="0 0 16 16" style={{ position: 'absolute' }}>
+        <polyline
+          points="4,9 7,12 12,5"
+          style={{
+            fill: 'none',
+            stroke: '#BFA465',
+            strokeWidth: 2,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+          }}
+        />
+      </svg>
+    )}
+  </span>
+  <span style={{ color: '#999999', fontSize: '14px' }}>
+    Upon confirming reservation you are agreeing with our{' '}
+    <a
+      href={`/policy/${hallId}`}
+      className="underline"
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ color: '#BFA465' }}
+    >
+      Terms & Conditions
+    </a>.
+  </span>
+</div>
           </div>
         )}
       </div>
     );
   };
+
+  useEffect(() => {
+    // Restore state if present
+    if (bookingState && bookingState.hallId === hallId) {
+      setSelectedMonth(bookingState.selectedMonth || '');
+      setSelectedYear(bookingState.selectedYear || currentYear.toString());
+      setSelectedDate(bookingState.selectedDate || '');
+      setSelectedShift(bookingState.selectedShift || '');
+      setAgreedTerms(bookingState.agreedTerms || false);
+      setShowResults(!!bookingState.showResults); // <-- Add this line
+    } else {
+      setSelectedYear(currentYear.toString());
+      setShowResults(false); // <-- Add this line
+    }
+    // eslint-disable-next-line
+  }, [hallId]);
+
+  // Whenever any relevant state changes, update context
+  useEffect(() => {
+    setBookingState({
+      hallId,
+      selectedMonth,
+      selectedYear,
+      selectedDate,
+      selectedShift,
+      agreedTerms,
+      showResults, // <-- Add this line
+    });
+  }, [hallId, selectedMonth, selectedYear, selectedDate, selectedShift, agreedTerms, showResults, setBookingState]);
 
   return (
     <div className="absolute top-116 left-0 right-0 min-h-10 overflow-y-scroll bg-[#232323] p-7">
@@ -433,7 +537,7 @@ const BookingCalendar = () => {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full p-1 md:p-2 bg-[#232323] text-white rounded border border-gray-600"
+                  className="w-full p-1 md:p-2 bg-[#232323] text-white rounded border border-[#232323]"
                 >
                   <option value="">Select Month</option>
                   {months.map(month => (
@@ -446,15 +550,18 @@ const BookingCalendar = () => {
 
               <div>
                 <label className="block text-white text-sm mb-2">Select Year</label>
-                <input
-                  type="number"
+                <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  placeholder="Enter Year"
-                  min="2024"
-                  max="2030"
-                  className="w-full p-1 md:p-2 bg-[#232323] text-white rounded border border-gray-600"
-                />
+                  className="w-full p-1 md:p-2 bg-[#232323] text-white rounded border border-[#232323]"
+                >
+                  <option value="">Select Year</option>
+                  {yearOptions.map(year => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

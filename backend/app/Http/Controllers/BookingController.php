@@ -72,7 +72,7 @@ class BookingController extends Controller
             'month' => 'required|date_format:Y-m'
         ]);
 
-        $start = Carbon::createFromFormat('Y-m', $request->month)->startOfMonth();
+        $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $request->month)->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
         $bookings = Booking::where('hall_id', $hall_id)
@@ -129,4 +129,43 @@ class BookingController extends Controller
     ]);
 }
 
+public function update(Request $request, $id)
+{
+    $data = $request->validate([
+        'booking_date' => 'required|date',
+        'shift' => 'required|in:FN,AN,FD',
+    ]);
+
+    $booking = Booking::where('id', $id)
+        ->where('member_id', auth()->id())
+        ->first();
+
+    if (!$booking) {
+        return response()->json(['error' => 'Booking not found'], 404);
+    }
+
+    // Conflict check (exclude current booking)
+    $conflict = Booking::where('hall_id', $booking->hall_id)
+        ->where('booking_date', $data['booking_date'])
+        ->whereIn('shift', $this->getConflictingShifts($data['shift']))
+        ->where('id', '!=', $booking->id)
+        ->where(function ($query) {
+            $query->where('status', '!=', 'Cancelled')
+                ->where(function ($q) {
+                    $q->where('status', '!=', 'Unpaid')
+                        ->orWhere('expires_at', '>', now());
+                });
+        })
+        ->exists();
+
+    if ($conflict) {
+        return response()->json(['error' => 'Shift already booked'], 409);
+    }
+
+    $booking->booking_date = $data['booking_date'];
+    $booking->shift = $data['shift'];
+    $booking->save();
+
+    return response()->json($booking);
+}
 }

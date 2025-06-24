@@ -12,8 +12,16 @@ class Booking extends Model
         'booking_date',
         'shift',
         'status',
-        'statusUpdater'
-    ];
+        'statusUpdater',
+        'expires_at',
+    // ...other fields...
+];
+
+protected $casts = [
+    'expires_at' => 'datetime',
+    // ...other casts...
+];
+
 
     public function member()
     {

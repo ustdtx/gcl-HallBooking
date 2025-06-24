@@ -12,17 +12,17 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [otpDebug, setOtpDebug] = useState(""); // Add this line
   const { setAuthData } = useAuth();
-  
-  const navigate = useNavigate(); 
+
+  const navigate = useNavigate();
+  const location = useLocation(); // <-- Add this line
   // Replace with your actual API base URL
-  const API_BASE = import.meta.env.VITE_API_URL|| "";
+  const API_BASE = import.meta.env.VITE_API_URL || "";
 
   const handleNext = async () => {
     if (step === 1 && clubAccount.trim()) {
       setStep(2);
     }
   };
-
 
   const handleRequestOtp = async () => {
     if (!emailOrPhone.trim()) return;
@@ -67,8 +67,16 @@ export default function Login() {
         const data = await res.json();
         setAuthData(data);
 
-        
-        navigate('/home', { replace: true });
+        // --- REDIRECT LOGIC START ---
+        // Check for redirect param in URL
+        const params = new URLSearchParams(location.search);
+        const redirect = params.get("redirect");
+        if (redirect) {
+          navigate(redirect, { replace: true });
+        } else {
+          navigate('/home', { replace: true });
+        }
+        // --- REDIRECT LOGIC END ---
       } else {
         const data = await res.json();
         setMessage(data.message || "OTP verification failed");
