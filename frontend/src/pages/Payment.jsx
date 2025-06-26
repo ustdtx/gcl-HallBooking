@@ -85,12 +85,11 @@ const initiatePayment = async (purpose) => {
       setPaymentPurpose(purpose);
       setShowFirstModal(true);
     } else if (booking.status === 'Pre-Booked') {
-      purpose = 'Final';
-      setPaymentPurpose(purpose);
-      setShowFirstModal(true);
-    } else if (booking.status === 'Paid') {
-      // Directly initiate payment for paid bookings
+      // Directly initiate payment for pre-booked bookings
       initiatePayment('Final');
+    } else if (booking.status === 'Paid') {
+      alert('This booking is already fully paid.');
+      return;
     } else {
       alert('Payment not allowed for this booking status.');
       return;
