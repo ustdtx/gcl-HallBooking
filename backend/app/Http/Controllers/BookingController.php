@@ -180,4 +180,72 @@ public function show($id)
 
     return response()->json($booking);
 }
+
+public function adminBlock(Request $request)
+{
+    $data = $request->validate([
+        'hall_id' => 'required|exists:halls,id',
+        'booking_date' => 'required|date',
+        'shift' => 'required|in:FN,AN,FD',
+    ]);
+
+    $conflict = Booking::where('hall_id', $data['hall_id'])
+        ->where('booking_date', $data['booking_date'])
+        ->whereIn('shift', $this->getConflictingShifts($data['shift']))
+        ->where('status', '!=', 'Cancelled')
+        ->exists();
+
+    if ($conflict) {
+        return response()->json(['error' => 'Slot already booked or blocked'], 409);
+    }
+
+    $booking = Booking::create([
+        'member_id' => null,
+        'hall_id' => $data['hall_id'],
+        'booking_date' => $data['booking_date'],
+        'shift' => $data['shift'],
+        'status' => 'Unavailable',
+        'statusUpdater' => 'Admin',
+    ]);
+
+    return response()->json($booking, 201);
+}
+
+public function unavailableBookings(Request $request)
+{
+    $query = Booking::where('status', 'Unavailable');
+
+    if ($request->has('hall_id')) {
+        $query->where('hall_id', $request->hall_id);
+    }
+    if ($request->has('month')) {
+        $start = \Illuminate\Support\Carbon::createFromFormat('Y-m', $request->month)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $query->whereBetween('booking_date', [$start, $end]);
+    }
+
+    $bookings = $query->get();
+
+    return response()->json($bookings);
+}
+
+public function allBookings()
+{
+    $bookings = Booking::all();
+    return response()->json($bookings);
+}
+
+public function setToReview(Request $request)
+{
+    $data = $request->validate([
+        'id' => 'required|exists:bookings,id',
+    ]);
+
+    $booking = Booking::find($data['id']);
+
+    $booking->status = 'Review';
+    $booking->save();
+
+    return response()->json(['message' => 'Booking status set to Review', 'booking' => $booking]);
+}
 }

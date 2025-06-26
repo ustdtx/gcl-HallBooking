@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useHalls } from '../context/HallsContext';
 import { useBooking } from '../context/BookingContext';
 import Footer from '../components/Footer';
@@ -105,7 +105,9 @@ const BookingCalendar = () => {
     const fdBooking = getBookingStatus(date, 'FD');
     return (
       fdBooking &&
-      ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(fdBooking.status)
+      ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes(
+        (fdBooking.status || '').toString()
+      )
     );
   };
 
@@ -114,8 +116,8 @@ const BookingCalendar = () => {
     const fnBooking = getBookingStatus(date, 'FN');
     const anBooking = getBookingStatus(date, 'AN');
     return (
-      (fnBooking && ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(fnBooking.status)) ||
-      (anBooking && ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(anBooking.status))
+      (fnBooking && ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes((fnBooking.status || '').toString())) ||
+      (anBooking && ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes((anBooking.status || '').toString()))
     );
   };
 
@@ -144,7 +146,8 @@ const BookingCalendar = () => {
       booking.status === 'Unpaid' ||
       booking.status === 'Unavailable' ||
       booking.status === 'Pre-Booked' ||
-      booking.status === 'Confirmed'
+      booking.status === 'Confirmed' ||
+      booking.status === 'Review'
     ) return false;
     return true;
   };
@@ -169,8 +172,12 @@ const BookingCalendar = () => {
       // Available or Cancelled
       return { backgroundColor: '#00B34C', color: 'white', borderColor: '#BFA46540' };
     }
-    if (booking.status === 'Unpaid' || booking.status === 'Pre-Booked') {
-      // Prebooked (Unpaid)
+    if (
+      booking.status === 'Unpaid' ||
+      booking.status === 'Pre-Booked' ||
+      booking.status === 'Review'
+    ) {
+      // Prebooked (Unpaid or Review)
       return { backgroundColor: '#F4B083', color: '#232323', borderColor: '#BFA46540' };
     }
     if (booking.status === 'Unavailable') {
@@ -477,15 +484,15 @@ const BookingCalendar = () => {
   </span>
   <span style={{ color: '#999999', fontSize: '14px' }}>
     Upon confirming reservation you are agreeing with our{' '}
-    <a
-      href={`/policy/${hallId}`}
+    <Link
+      to={`/policy/${hallId}`}
       className="underline"
       target="_blank"
       rel="noopener noreferrer"
       style={{ color: '#BFA465' }}
     >
       Terms & Conditions
-    </a>.
+    </Link>.
   </span>
 </div>
           </div>

@@ -27,9 +27,11 @@ export default function Profile() {
                 className="w-20 h-20 rounded-full object-cover border border-[#BFA465]"
               />
             ) : (
-              <div className="w-20 h-20 bg-[#3d3d3d] rounded-full flex items-center justify-center text-3xl text-[#BFA465]">
-                <i className="fas fa-user"></i>
-              </div>
+              <img
+                src="/assets/user.svg"
+                alt="No Profile"
+                className="w-20 h-20 rounded-full object-cover border border-[#BFA465] bg-[#3d3d3d] p-3"
+              />
             )}
           </div>
 

@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import Footer from '../components/Footer';
+import nagadImg from '/assets/nagad.png';
+import bkashImg from '/assets/bkash.png';
+import amexImg from '/assets/amex.png';
+import visaImg from '/assets/visa.png';
+import mastercardImg from '/assets/mastercard.png';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -77,14 +82,19 @@ const initiatePayment = async (purpose) => {
     let purpose = '';
     if (booking.status === 'Unpaid') {
       purpose = 'Pre-Book';
+      setPaymentPurpose(purpose);
+      setShowFirstModal(true);
     } else if (booking.status === 'Pre-Booked') {
       purpose = 'Final';
+      setPaymentPurpose(purpose);
+      setShowFirstModal(true);
+    } else if (booking.status === 'Paid') {
+      // Directly initiate payment for paid bookings
+      initiatePayment('Final');
     } else {
       alert('Payment not allowed for this booking status.');
       return;
     }
-    setPaymentPurpose(purpose);
-    setShowFirstModal(true);
   };
 
   const handleFirstModalContinue = () => {
@@ -110,6 +120,14 @@ const initiatePayment = async (purpose) => {
     </div>
   );
 
+  const paymentMethods = [
+    { name: 'Nagad', img: nagadImg },
+    { name: 'Bkash', img: bkashImg },
+    { name: 'AMEX', img: amexImg },
+    { name: 'VISA', img: visaImg },
+    { name: 'Master Card', img: mastercardImg },
+  ];
+
   if (loading) return <div className="text-white text-center mt-20">Loading...</div>;
   if (error) return <div className="text-red-500 text-center mt-20">{error}</div>;
 
@@ -118,13 +136,16 @@ const initiatePayment = async (purpose) => {
       <div className="max-w-xl mx-auto mt-10 p-6 rounded-lg bg-[#333333] border border-[#444444]">
         <h2 className="text-center text-lg mb-4">Select Payment Option</h2>
         <div className="divide-y divide-[#444444]">
-          {['Nagad', 'Bkash', 'AMEX', 'VISA', 'Master Card'].map((method, idx) => (
+          {paymentMethods.map((method, idx) => (
             <div
               key={idx}
               className="flex justify-between items-center py-4 px-3 cursor-pointer hover:bg-[#2a2a2a]"
               onClick={handleClick}
             >
-              <span>{method}</span>
+              <div className="flex items-center gap-3">
+                <img src={method.img} alt={method.name} className="w-8 h-8 object-contain" />
+                <span>{method.name}</span>
+              </div>
               <span className="text-[#BFA465]">&gt;</span>
             </div>
           ))}

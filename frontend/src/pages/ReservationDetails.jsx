@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Footer from "../components/Footer";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import BookingDetailsPDF from "./BookingDetailsPDF";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -11,6 +13,9 @@ export default function ReservationDetails() {
   const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [charges, setCharges] = useState(null);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRequestedModal, setShowRequestedModal] = useState(false);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -32,83 +37,246 @@ export default function ReservationDetails() {
     fetchBooking();
   }, [authData.token, bookingId]);
 
-  // Fetch charges after booking is loaded
   useEffect(() => {
-  const fetchCharges = async () => {
-    if (!booking) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/calculate-charge`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData.token}`
-        },
-        body: JSON.stringify({
-          hall_id: parseInt(booking.hall.id),
-          shift: booking.shift
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        console.log("Charges fetched:", data);
-        setCharges({
-          total_charges: data.total_charge,
-          pre_book_amount: data["Pre-book"] || 0,
+    const fetchCharges = async () => {
+      if (!booking) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/calculate-charge`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authData.token}`,
+          },
+          body: JSON.stringify({
+            hall_id: parseInt(booking.hall.id),
+            shift: booking.shift,
+          }),
         });
-      } else {
+        const data = await res.json();
+        if (res.ok) {
+          setCharges({
+            total_charges: data.total_charge,
+            pre_book_amount: data["Pre-book"] || 0,
+          });
+        } else {
+          setCharges(null);
+        }
+      } catch (e) {
         setCharges(null);
       }
-    } catch (e) {
-      setCharges(null);
-    }
-  };
-  fetchCharges();
-}, [booking, authData.token]);
-
-  const handleCancel = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/cancel`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${authData.token}` },
-      });
-      if (res.ok) {
-        alert("Reservation cancelled.");
-        navigate("/reservations");
-      } else {
-        alert("Failed to cancel.");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    };
+    fetchCharges();
+  }, [booking, authData.token]);
 
   const handlePayment = () => {
     navigate(`/payment/${bookingId}`);
   };
 
-  if (!booking || !charges) return <div className="text-white p-6">Loading...</div>;
+  if (!booking || !charges)
+    return <div className="text-white p-6">Loading...</div>;
 
   const { hall, shift, status, booking_date } = booking;
   const displayStatus = status === "Unpaid" ? "On-Hold" : status;
   const prebookAmount = charges.pre_book_amount || 0;
   const fullAmount = charges.total_charges || 0;
-  const remaining =
-    status === "Pre-Booked"
-      ? parseInt(fullAmount) - parseInt(prebookAmount)
-      : parseInt(fullAmount);
+
+  let remaining;
+  if (status === "Confirmed") {
+    remaining = 0;
+  } else if (status === "Cancelled") {
+    remaining = null;
+  } else if (status === "Pre-Booked") {
+    remaining = parseInt(fullAmount) - parseInt(prebookAmount);
+  } else {
+    remaining = parseInt(fullAmount);
+  }
 
   const shiftLabel =
     shift === "FN"
-      ? "Morning (09:00 - 15:00)"
+      ? "Morning (11:00 - 15:00)"
       : shift === "AN"
-      ? "Dinner (17:00 - 23:00)"
-      : "Full Day (09:00 - 23:00)";
+      ? "Dinner (15:00 - 23:00)"
+      : "Full Day (11:00 - 23:00)";
 
   return (
     <>
+      {/* Cancel Confirmation Modal */}
+      {showConfirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#2c2c2c",
+              color: "white",
+              borderRadius: "16px",
+              padding: "24px",
+              width: "90%",
+              maxWidth: "400px",
+              textAlign: "center",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "bold",
+                marginBottom: "1rem",
+              }}
+            >
+              Do you want to cancel?
+            </h3>
+            <ul
+              style={{
+                fontSize: "0.875rem",
+                textAlign: "left",
+                marginBottom: "1.5rem",
+                color: "#d1d5db",
+                listStyle: "disc inside",
+              }}
+            >
+              <li>Once the pre-booking payment is made, it is non-refundable.</li>
+              <li>
+                If you wish to change the booking date using the pre-booking amount,
+                update it within 48 hours. Otherwise, a new booking will be required.
+              </li>
+            </ul>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: "1rem",
+              }}
+            >
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                style={{
+                  flex: 1,
+                  border: "1px solid #d1d5db",
+                  padding: "0.5rem 0",
+                  borderRadius: "8px",
+                  background: "transparent",
+                  color: "white",
+                  transition: "background 0.2s",
+                  cursor: "pointer",
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={async () => {
+                  setShowConfirmModal(false);
+                  try {
+                    const res = await fetch(
+                      `${API_BASE}/api/bookings/request-cancel`,
+                      {
+                        method: "POST",
+                        headers: { 
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${authData.token}` 
+                        },
+                        body: JSON.stringify({ id: parseInt(bookingId) }),
+                      }
+                    );
+                    if (res.ok) {
+                      setShowRequestedModal(true);
+                    } else {
+                      alert("Failed to cancel.");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert("An error occurred.");
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: "#F5534E",
+                  color: "white",
+                  padding: "0.5rem 0",
+                  borderRadius: "8px",
+                  border: "none",
+                  transition: "background 0.2s",
+                  cursor: "pointer",
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Requested Modal */}
+      {showRequestedModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#2c2c2c",
+              color: "white",
+              borderRadius: "16px",
+              padding: "24px",
+              width: "90%",
+              maxWidth: "400px",
+              textAlign: "center",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "bold",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Requested
+            </h3>
+            <p
+              style={{
+                color: "#d1d5db",
+                marginBottom: "1.5rem",
+              }}
+            >
+              Cancellation request has been sent. Will notify you soon.
+            </p>
+            <button
+              onClick={() => {
+                setShowRequestedModal(false);
+                navigate("/reservations");
+              }}
+              style={{
+                background: "#BFA465",
+                color: "white",
+                padding: "0.5rem 1.5rem",
+                borderRadius: "8px",
+                border: "none",
+                transition: "background 0.2s",
+                cursor: "pointer",
+              }}
+            >
+              Ok
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-12 left-0 right-0 bg-[#232323] text-white min-h-screen py-6">
         <div className="max-w-3xl mx-auto px-4 sm:px-8">
-          {/* Back Link */}
           <div className="mb-4 text-left">
             <a
               href="/reservations"
@@ -150,28 +318,45 @@ export default function ReservationDetails() {
                   <p><b>Status:</b> {displayStatus}</p>
                   <p><b>Total Amount:</b> {fullAmount}tk</p>
                   <p><b>Pre Booking Amount:</b> {prebookAmount}tk</p>
-                  <p><b>Amount to be Paid:</b> {remaining.toLocaleString()}tk</p>
+                  <p><b>Amount to be Paid:</b> {remaining === null ? "NULL" : `${remaining.toLocaleString()}tk`}</p>
                   <p><b>Date:</b> {new Date(booking_date).toLocaleDateString()}</p>
                   <p><b>Shift:</b> {shiftLabel}</p>
                 </div>
               </div>
 
-              {/* Centered 2x2 Button Grid */}
               <div className="flex flex-col items-center mt-6 gap-3">
                 <div className="flex flex-row gap-3 w-full justify-center">
-                  {/* Payment Button */}
                   <button
                     onClick={handlePayment}
-                    disabled={status === "Confirmed"}
+                    disabled={
+                      status === "Confirmed" ||
+                      status === "Cancelled" ||
+                      status === "Review"
+                    }
                     style={{
-                      backgroundColor: status === "Confirmed" ? "#232323" : "#BFA465",
+                      backgroundColor:
+                        status === "Confirmed" ||
+                        status === "Cancelled" ||
+                        status === "Review"
+                          ? "#232323"
+                          : "#BFA465",
                       color: "#fff",
                       padding: "0.5rem 1rem",
                       borderRadius: "0.5rem",
                       border: "none",
                       minWidth: "160px",
-                      opacity: status === "Confirmed" ? 0.6 : 1,
-                      cursor: status === "Confirmed" ? "not-allowed" : "pointer",
+                      opacity:
+                        status === "Confirmed" ||
+                        status === "Cancelled" ||
+                        status === "Review"
+                          ? 0.6
+                          : 1,
+                      cursor:
+                        status === "Confirmed" ||
+                        status === "Cancelled" ||
+                        status === "Review"
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     {status === "Unpaid"
@@ -181,10 +366,12 @@ export default function ReservationDetails() {
                       : "Make Full Payment"}
                   </button>
 
-                  {/* Edit Button */}
                   <button
                     onClick={() => navigate(`/update-booking/${bookingId}`)}
-                    disabled={!(status === "Pre-Booked" || status === "Unpaid")}
+                    disabled={
+                      !(status === "Pre-Booked" || status === "Unpaid") ||
+                      status === "Review"
+                    }
                     style={{
                       border: "1.5px solid #B18E4E",
                       color: "white",
@@ -192,47 +379,90 @@ export default function ReservationDetails() {
                       padding: "0.5rem 1rem",
                       borderRadius: "0.5rem",
                       minWidth: "160px",
-                      opacity: !(status === "Pre-Booked" || status === "Unpaid") ? 0.6 : 1,
-                      cursor: !(status === "Pre-Booked" || status === "Unpaid") ? "not-allowed" : "pointer",
+                      opacity:
+                        !(status === "Pre-Booked" || status === "Unpaid") ||
+                        status === "Review"
+                          ? 0.6
+                          : 1,
+                      cursor:
+                        !(status === "Pre-Booked" || status === "Unpaid") ||
+                        status === "Review"
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     Edit Booking
                   </button>
                 </div>
+
                 <div className="flex flex-row gap-3 w-full justify-center">
-                  {/* Cancel Button */}
                   <button
-                    onClick={handleCancel}
+                    onClick={() => setShowConfirmModal(true)}
+                    disabled={
+                      !(status === "Pre-Booked" || status === "Confirmed") ||
+                      status === "Review"
+                    }
                     style={{
                       border: "1.5px solid #F5534E",
-                      color: "#F5534E",
+                      color:
+                        !(status === "Pre-Booked" || status === "Confirmed") ||
+                        status === "Review"
+                          ? "#888"
+                          : "#F5534E",
                       backgroundColor: "transparent",
                       padding: "0.5rem 1rem",
                       borderRadius: "0.5rem",
                       minWidth: "160px",
+                      opacity:
+                        !(status === "Pre-Booked" || status === "Confirmed") ||
+                        status === "Review"
+                          ? 0.6
+                          : 1,
+                      cursor:
+                        !(status === "Pre-Booked" || status === "Confirmed") ||
+                        status === "Review"
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
                     Cancel Reservation
                   </button>
 
-                  {/* Download PDF */}
-                  <button
-                    onClick={() => window.open(`${API_BASE}/${hall.policy_pdf}`, "_blank")}
-                    style={{
-                      border: "1.5px solid #B18E4E",
-                      color: "white",
-                      backgroundColor: "transparent",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "0.5rem",
-                      minWidth: "160px",
-                    }}
+                  <PDFDownloadLink
+                    document={
+                      <BookingDetailsPDF
+                        hall={hall}
+                        member={authData.member}
+                        displayStatus={displayStatus}
+                        fullAmount={fullAmount}
+                        prebookAmount={prebookAmount}
+                        remaining={remaining}
+                        booking_date={new Date(booking_date).toLocaleDateString()}
+                        shiftLabel={shiftLabel}
+                      />
+                    }
+                    fileName={`booking-details-${bookingId}.pdf`}
                   >
-                    Download PDF
-                  </button>
+                    {({ loading }) => (
+                      <button
+                        style={{
+                          border: "1.5px solid #B18E4E",
+                          color: "white",
+                          backgroundColor: "transparent",
+                          padding: "0.5rem 1rem",
+                          borderRadius: "0.5rem",
+                          minWidth: "160px",
+                        }}
+                      >
+                        {loading ? "Preparing PDF..." : "Download PDF"}
+                      </button>
+                    )}
+                  </PDFDownloadLink>
                 </div>
               </div>
             </div>
           </div>
+
           <div className="absolute bg-[#232323] left-0">
             <Footer />
           </div>

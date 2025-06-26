@@ -15,6 +15,8 @@ import ReservationDetails from './pages/ReservationDetails';
 import UpdateBooking from './pages/UpdateBooking';
 import Profile from './pages/Profile';
 import Policy from './pages/Policy';
+import Management from './pages/Management';
+import Catering from './pages/Catering';
 
 function App() {
   const [count, setCount] = useState(0)
@@ -71,6 +73,8 @@ function App() {
             <Route path="/update-booking/:bookingId" element={<UpdateBooking />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/policy/:hallId" element={<Policy />} />
+            <Route path="/management" element={<Management />} />
+            <Route path="/catering" element={<Catering />} />
 
           </Routes>
         </Router>

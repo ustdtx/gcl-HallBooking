@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useHalls } from '../context/HallsContext';
 import Footer from '../components/Footer';
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -153,7 +153,7 @@ const UpdateBooking = () => {
     const fdBooking = getBookingStatus(date, 'FD');
     return (
       fdBooking &&
-      ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(fdBooking.status)
+      ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes(fdBooking.status)
     );
   };
 
@@ -162,8 +162,8 @@ const UpdateBooking = () => {
     const fnBooking = getBookingStatus(date, 'FN');
     const anBooking = getBookingStatus(date, 'AN');
     return (
-      (fnBooking && ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(fnBooking.status)) ||
-      (anBooking && ['Confirmed', 'Pre-Booked', 'Unpaid'].includes(anBooking.status))
+      (fnBooking && ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes(fnBooking.status)) ||
+      (anBooking && ['Confirmed', 'Pre-Booked', 'Unpaid', 'Review'].includes(anBooking.status))
     );
   };
 
@@ -192,7 +192,8 @@ const UpdateBooking = () => {
       booking.status === 'Unpaid' ||
       booking.status === 'Unavailable' ||
       booking.status === 'Pre-Booked' ||
-      booking.status === 'Confirmed'
+      booking.status === 'Confirmed' ||
+      booking.status === 'Review'
     ) return false;
     return true;
   };
@@ -217,8 +218,12 @@ const UpdateBooking = () => {
       // Available or Cancelled
       return { backgroundColor: '#00B34C', color: 'white', borderColor: '#BFA46540' };
     }
-    if (booking.status === 'Unpaid' || booking.status === 'Pre-Booked') {
-      // Prebooked (Unpaid)
+    if (
+      booking.status === 'Unpaid' ||
+      booking.status === 'Pre-Booked' ||
+      booking.status === 'Review'
+    ) {
+      // Prebooked (Unpaid or Review)
       return { backgroundColor: '#F4B083', color: '#232323', borderColor: '#BFA46540' };
     }
     if (booking.status === 'Unavailable') {
@@ -518,15 +523,15 @@ const UpdateBooking = () => {
               </span>
               <span style={{ color: '#999999', fontSize: '14px' }}>
                 Upon updating reservation you are agreeing with our{' '}
-                <a
-                  href={`/policy/${currentHall?.id}`}
+                <Link
+                  to={`/policy/${currentHall?.id}`}
                   className="underline"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ color: '#BFA465' }}
                 >
                   Terms & Conditions
-                </a>.
+                </Link>.
               </span>
             </div>
           </div>

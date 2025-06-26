@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useHalls } from "../context/HallsContext";
 import { useAuth } from "../context/AuthContext"; 
 import Footer from '../components/Footer.jsx';
@@ -61,24 +61,19 @@ const Charges = () => {
               <p className="font-semibold mb-2 text-left">Important Link</p>
               <ul className="space-y-1 text-sm text-left">
                 <li>
-                  <a href="#" style={{ color: "#CABEA4", display: "inline" }}>
-                    Terms and Conditions
-                  </a>
+                  <Link to={`/policy/${hallId}`} style={{ color: "#CABEA4", display: "inline" }}>
+                    •Terms and Conditions
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" style={{ color: "#CABEA4", display: "inline" }}>
-                    Enlisted Catering Provider List
-                  </a>
+                  <Link to={`/catering`} style={{ color: "#CABEA4", display: "inline" }}>
+                    •Enlisted Catering Provider List
+                  </Link>
                 </li>
                 <li>
-                  <a href="#" style={{ color: "#CABEA4", display: "inline" }}>
-                    Enlisted Event Management
-                  </a>
-                </li>
-                <li>
-                  <a href="#" style={{ color: "#CABEA4", display: "inline" }}>
-                    Company
-                  </a>
+                  <Link to={`/management`} style={{ color: "#CABEA4", display: "inline" }}>
+                    •Enlisted Event Management Company
+                  </Link>
                 </li>
               </ul>
             </div>

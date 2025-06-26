@@ -10,13 +10,15 @@ const statusColors = {
   "Pre-Booked": "bg-[#BFA465]",
   Cancelled: "bg-[#F5534E]",
   Unpaid: "bg-yellow-700", // For On-Hold
+  Review: "bg-blue-400",   // <-- Added Review status
 };
 
 export default function ReservationHistory() {
   const { authData } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [filter, setFilter] = useState("All");
-  const navigate = useNavigate(); // <-- Add this line
+  const [page, setPage] = useState(1); // <-- Add this line
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchReservations = async () => {
@@ -41,18 +43,31 @@ export default function ReservationHistory() {
     { key: "Confirmed", label: "Confirmed" },
     { key: "Pre-Booked", label: "Pre-Booked" },
     { key: "Unpaid", label: "On-Hold" },
+    { key: "Review", label: "Review" },      // <-- Added Review filter
     { key: "Cancelled", label: "Cancelled" },
   ];
 
+  // Sort bookings by newest first (assuming createdAt exists; fallback to id)
+  const sortedBookings = [...bookings].sort(
+    (a, b) =>
+      (new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0)) ||
+      (b.id - a.id)
+  );
+
   const filtered =
     filter === "All"
-      ? bookings.filter((b) => b.status !== "Unavailable")
-      : bookings.filter(
+      ? sortedBookings.filter((b) => b.status !== "Unavailable")
+      : sortedBookings.filter(
           (b) =>
             (filter === "Unpaid"
               ? b.status === "Unpaid"
               : b.status === filter) && b.status !== "Unavailable"
         );
+
+  // Pagination logic
+  const pageSize = 10;
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="absolute top-12 left-0 right-0 bg-[#232323] text-white p-8">
@@ -66,7 +81,10 @@ export default function ReservationHistory() {
           {FILTERS.map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setFilter(key)}
+              onClick={() => {
+                setFilter(key);
+                setPage(1); // Reset to first page on filter change
+              }}
               style={{
                 padding: "0.25rem 1rem",
                 borderRadius: "0.375rem",
@@ -86,13 +104,13 @@ export default function ReservationHistory() {
 
         {/* Booking Cards */}
         <div className="flex flex-col gap-4">
-          {filtered.length === 0 ? (
+          {paginated.length === 0 ? (
             <p>No reservations found.</p>
           ) : (
-            filtered.map((b) => (
+            paginated.map((b) => (
               <button
                 key={b.id}
-                onClick={() => navigate(`/reservations/${b.id}`)} // <-- Add this line
+                onClick={() => navigate(`/reservations/${b.id}`)}
                 style={{
                   background: "#333333",
                   borderRadius: "0.75rem",
@@ -142,10 +160,16 @@ export default function ReservationHistory() {
                           ? "#F5534E"
                           : b.status === "Unpaid"
                           ? "#b45309"
+                          : b.status === "Review"
+                          ? "#60a5fa" // <-- Added color for Review
                           : "#6b7280",
                     }}
                   >
-                    {b.status === "Unpaid" ? "On-Hold" : b.status}
+                    {b.status === "Unpaid"
+                      ? "On-Hold"
+                      : b.status === "Review"
+                      ? "Review"
+                      : b.status}
                   </span>
                   <h3
                     style={{
@@ -169,6 +193,49 @@ export default function ReservationHistory() {
             ))
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              style={{
+                padding: "0.5rem 1.25rem",
+                borderRadius: "0.375rem",
+                background: "#BFA465",
+                color: "#fff",
+                fontWeight: 600,
+                opacity: page === 1 ? 0.5 : 1,
+                cursor: page === 1 ? "not-allowed" : "pointer",
+                border: "none",
+                transition: "opacity 0.15s",
+              }}
+            >
+              Prev
+            </button>
+            <span style={{ color: "#BFA465", fontWeight: 600 }}>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              style={{
+                padding: "0.5rem 1.25rem",
+                borderRadius: "0.375rem",
+                background: "#BFA465",
+                color: "#fff",
+                fontWeight: 600,
+                opacity: page === totalPages ? 0.5 : 1,
+                cursor: page === totalPages ? "not-allowed" : "pointer",
+                border: "none",
+                transition: "opacity 0.15s",
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       <Footer />

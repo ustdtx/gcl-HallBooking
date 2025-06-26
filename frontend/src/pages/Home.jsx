@@ -69,7 +69,9 @@ const GulshanClub = () => {
                           minWidth: 0,
                         }}
                       >
+                        <Link to={`/policy/${hall.id}`} style={{ color: "inherit", textDecoration: "none" }}>
                         Policies
+                        </Link>
                       </button>
                       <button
                         style={{

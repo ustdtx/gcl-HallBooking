@@ -73,7 +73,10 @@ class PaymentController extends Controller
         'value_b' => $data['purpose'],
     ];
 
-    $response = Http::asForm()->post(env('SSLCZ_API_URL'), $payload);
+    
+
+    $response = Http::asForm()->post(config('services.sslcommerz.api_url'), $payload);
+
 
     if ($response->successful() && $response->json('GatewayPageURL')) {
     return response()->json([
@@ -133,5 +136,27 @@ class PaymentController extends Controller
     {
         Payment::where('tran_id', $request->tran_id)->update(['status' => 'Cancelled']);
         return response()->json(['message' => 'Payment cancelled']);
+    }
+
+    // Add this method to your PaymentController
+    public function index()
+    {
+        $payments = Payment::with('booking')->get();
+
+        // Return payments with booking_id and other relevant info
+        return response()->json($payments);
+    }
+
+    public function paymentsByBooking(Request $request)
+    {
+        $request->validate([
+            'booking_id' => 'required|exists:bookings,id'
+        ]);
+
+        $payments = Payment::where('booking_id', $request->booking_id)
+            ->with('booking')
+            ->get();
+
+        return response()->json($payments);
     }
 }

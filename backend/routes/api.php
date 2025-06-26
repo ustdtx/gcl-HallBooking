@@ -52,11 +52,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/bookings/{id}/cancel', [BookingController::class, 'cancel']); // cancel booking
 // Route for updating booking
     Route::put('/bookings/{id}', [BookingController::class, 'update']);
+    Route::post('bookings/request-cancel', [BookingController::class, 'setToReview']);
+});
+Route::middleware(['auth:sanctum', 'admin.role'])->group(function () {
+    // Admin-only API routes here
+
+Route::post('/bookings/block', [BookingController::class, 'adminBlock']);
+Route::get('/bookings/unavailable', [BookingController::class, 'unavailableBookings']);
 });
 
 Route::get('/bookings/hall/{hall_id}', [BookingController::class, 'hallBookings']); 
 Route::post('/calculate-charge', [BookingController::class, 'calculateCharge']);
 Route::get('/bookings/{id}', [BookingController::class, 'show']);
+
+Route::get('/bookings', [BookingController::class, 'allBookings']);
 
 use App\Http\Controllers\PaymentController;
 
@@ -64,3 +73,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payment/initiate', [PaymentController::class, 'initiate']);
 
 });
+Route::get('/payments', [PaymentController::class, 'index']);
+Route::get('/payments/by-booking', [PaymentController::class, 'paymentsByBooking']);
+
+use App\Http\Controllers\AdminAuthController;
+Route::prefix('admin')->group(function () {
+    Route::post('/login', [AdminAuthController::class, 'login']);
+    Route::middleware('auth:sanctum')->get('/me', [AdminAuthController::class, 'me']);
+    Route::middleware('auth:sanctum')->post('/logout', [AdminAuthController::class, 'logout']);
+});
+
+use App\Http\Controllers\AdminDashboardController;
+Route::middleware('auth:sanctum')->get('/admin/dashboard', [AdminDashboardController::class, 'index']);
+
+
+

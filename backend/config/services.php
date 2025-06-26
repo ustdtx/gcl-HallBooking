@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'sslcommerz' => [
+    'api_url' => env('SSLCZ_API_URL', 'https://sandbox.sslcommerz.com/gwprocess/v4/api.php'),
+    ],
+
+
 ];

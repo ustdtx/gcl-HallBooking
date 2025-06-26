@@ -17,7 +17,10 @@ export default function Navbar() {
 
   const isLoggedIn = !!authData?.member;
   const firstName = authData?.member?.name ? authData.member.name.split(" ")[0] : "Member";
-  const profilePic = authData?.member?.profilePic || "/assets/default-profile.png";
+  const profilePic =
+    authData?.member?.profile_picture
+      ? `${import.meta.env.VITE_API_URL || ""}/${authData.member.profile_picture}`
+      : "assets/user.png";
 
   // Close dropdowns when clicking outside
   useEffect(() => {
