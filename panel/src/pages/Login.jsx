@@ -28,7 +28,7 @@ export default function Login() {
 
       const data = await res.json();
       localStorage.setItem("AdminToken", data.token);
-      setAdmin(data.admin); // <-- save admin object in context
+      setAdmin(data); // <-- save admin object in context
       navigate("/dashboard");
     } catch (err) {
       setError(err.message);

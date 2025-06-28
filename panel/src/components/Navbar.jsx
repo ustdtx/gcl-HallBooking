@@ -83,10 +83,11 @@ const Navbar = () => {
             Dashboard
           </Link>
           <SidebarLink to="/users" label="Users" />
+          <SidebarLink to="/BookEvents" label="Book Events" />
           <SidebarLink to="/halls" label="Halls" />
           <SidebarLink to="/bookings" label="Bookings" />
           <SidebarLink to="/payments" label="Payments" />
-          <SidebarLink to="/settings" label="Settings" />
+          
         </div>
         <button onClick={handleLogout} style={{
           background: "#e74c3c",
